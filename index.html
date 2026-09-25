@@ -3,532 +3,577 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Split-Brain File</title>
+<title>JEV Neural Loop</title>
 <style>
   :root {
-    --bg: #07070a;
-    --panel: #0d0d12;
-    --line: #1c1c24;
-    --track: #15151c;
-    --yellow: #f5d76e;
+    --bg: #05050a;
+    --panel: #0b0b12;
+    --line: #1a1a24;
     --white: #ececec;
     --mute: #6f6f78;
-    --pink: #ff4fd8;
-    --green: #7dffb3;
-    --orange: #ff8a4c;
-    --red: #ff4d5e;
+    --dim: #45454e;
+    --pink: #ff3d8f;
+    --magenta: #ff5fc8;
+    --green: #5ef0a8;
+    --blue: #5ec8ff;
+    --yellow: #f5d76e;
+    --purple: #a78bfa;
     --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { background: var(--bg); color: var(--white); font-family: var(--mono); overflow: hidden; }
   body { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
 
   .page {
-    width: 1080px; height: 1350px; flex: none; position: relative;
-    background: var(--bg);
-    padding: 30px 36px 24px;
-    display: grid;
-    grid-template-rows: 134px 50px 520px 1fr 20px;
-    row-gap: 14px;
+    width: 1080px; height: 1350px; flex: none; position: relative; overflow: hidden;
+    background:
+      radial-gradient(ellipse 520px 380px at 50% 36%, rgba(255,61,143,.10), transparent 70%),
+      var(--bg);
     transform-origin: center center;
   }
-  .page::before {
-    content: ""; position: absolute; inset: 0; pointer-events: none;
-    background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 4px);
+  .tiny { font-size: 10px; letter-spacing: .16em; color: var(--mute); text-transform: uppercase; }
+
+  /* ---------- header ---------- */
+  header { position: absolute; top: 34px; left: 40px; right: 40px; display: flex; justify-content: space-between; z-index: 50; pointer-events: none; }
+  .brand { display: flex; align-items: baseline; gap: 22px; font-family: var(--sans); }
+  .brand .jev { font-size: 60px; font-weight: 800; color: var(--pink); letter-spacing: -.02em; line-height: 1; text-shadow: 0 0 24px rgba(255,61,143,.35); }
+  .brand .nl { font-size: 48px; font-weight: 600; color: var(--white); letter-spacing: -.01em; line-height: 1; }
+  .cap { margin-top: 16px; }
+  .counters { display: flex; gap: 44px; padding-top: 4px; }
+  .ctr { text-align: center; min-width: 78px; }
+  .ctr .v { margin-top: 8px; font-size: 20px; color: var(--white); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .ctr .v.p { color: var(--pink); }
+
+  /* ---------- stage ---------- */
+  #stage { position: absolute; left: 0; top: 118px; width: 1080px; height: 700px; }
+  #pods { position: absolute; left: 0; top: 118px; width: 1080px; height: 700px; overflow: hidden; pointer-events: none; }
+  .pod {
+    position: absolute; left: 0; top: 0; padding: 5px 12px 6px; text-align: center; white-space: nowrap;
+    background: rgba(9,9,15,.78); border: 1px solid rgba(255,255,255,.07); border-radius: 2px;
+    will-change: transform, opacity;
   }
-
-  .lbl { color: var(--mute); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
-  .y { color: var(--yellow); } .w { color: var(--white); } .m { color: var(--mute); }
-  .p { color: var(--pink); } .g { color: var(--green); } .o { color: var(--orange); } .r { color: var(--red); }
-
-  /* ---------- HEADER ---------- */
-  header { display: flex; justify-content: space-between; align-items: stretch; }
-  .h-left { display: flex; flex-direction: column; justify-content: space-between; }
-  h1 { font-size: 52px; line-height: 1; font-weight: 800; color: var(--yellow); letter-spacing: -.01em; }
-  .sub { font-size: 20px; color: var(--white); letter-spacing: .02em; }
-  .motto { font-size: 16px; letter-spacing: .12em; }
-  .h-right { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; text-align: right; }
-  .clock { font-size: 52px; font-weight: 800; color: var(--orange); line-height: 1; font-variant-numeric: tabular-nums; }
-  .phase { font-size: 15px; letter-spacing: .14em; color: var(--pink); }
-
-  /* ---------- STRIP ---------- */
-  .strip { display: grid; grid-template-columns: 1.45fr 1fr 1fr; border: 1px solid var(--line); background: var(--panel); }
-  .chip { display: flex; align-items: center; gap: 10px; padding: 0 16px; font-size: 15px; letter-spacing: .04em; white-space: nowrap; transition: background .4s; }
-  .chip + .chip { border-left: 1px solid var(--line); }
-  .chip .k { color: var(--mute); font-size: 12px; letter-spacing: .14em; }
-  .chip.on { background: rgba(125,255,179,.06); }
-  .chip.warn { background: rgba(255,77,94,.07); }
-
-  /* ---------- TOP ---------- */
-  .top { display: grid; grid-template-columns: 540px 1fr; column-gap: 24px; }
-  .radar { position: relative; width: 540px; height: 520px; }
-  .radar svg { position: absolute; left: 0; top: -10px; width: 540px; height: 540px; }
-  .sweep {
-    position: absolute; left: 60px; top: 50px; width: 420px; height: 420px; border-radius: 50%;
-    background: conic-gradient(from 0deg, rgba(125,255,179,.26), rgba(125,255,179,0) 70deg, transparent 360deg);
-    animation: spin 4s linear infinite;
+  .pod b { display: block; font-family: var(--sans); font-size: 14px; font-weight: 600; color: var(--white); }
+  .pod i { display: block; font-style: normal; font-size: 10px; color: var(--mute); letter-spacing: .04em; margin-top: 2px; }
+  .pod.hi { border-color: var(--pink); box-shadow: 0 0 16px rgba(255,61,143,.35); }
+  .pod.hi b { color: var(--pink); }
+  .pod.hi::before {
+    content: "focus"; position: absolute; left: 50%; top: -17px; transform: translateX(-50%);
+    font-size: 9px; color: var(--pink); border: 1px solid rgba(255,61,143,.6); padding: 0 6px; letter-spacing: .1em;
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .hud { position: absolute; top: 824px; left: 40px; right: 40px; display: flex; justify-content: space-between; }
+  .hud span { font-size: 10px; letter-spacing: .16em; color: var(--dim); }
 
-  .node circle.dot { fill: var(--bg); stroke: var(--mute); stroke-width: 2; transition: all .4s; }
-  .node circle.halo { fill: none; stroke: var(--pink); stroke-width: 1.5; opacity: 0; }
-  .node text { fill: var(--mute); font-family: var(--mono); font-size: 13px; letter-spacing: .12em; text-anchor: middle; transition: fill .4s; }
-  .node.on circle.dot { fill: var(--green); stroke: var(--green); }
-  .node.on text { fill: var(--white); }
-  .node.hot circle.halo { animation: ping 1.2s ease-out infinite; }
-  .node.hot circle.dot { fill: var(--pink); stroke: var(--pink); }
-  .node.hot text { fill: var(--pink); }
-  @keyframes ping { 0% { r: 11; opacity: .9; } 100% { r: 30; opacity: 0; } }
-  .spoke { stroke: var(--mute); stroke-width: 1; stroke-dasharray: 3 5; opacity: .35; transition: all .4s; }
-  .spoke.on { stroke: var(--green); opacity: .8; stroke-dasharray: none; }
-
-  .core {
-    position: absolute; left: 50%; top: 50%; width: 300px; transform: translate(-50%, -50%);
-    background: var(--bg); border: 1px solid var(--line); padding: 12px 12px 10px;
-    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  /* ---------- tape ---------- */
+  .tape {
+    position: absolute; top: 852px; left: 36px; right: 36px; height: 50px;
+    border: 1px solid var(--line); background: var(--panel); border-radius: 4px;
+    display: flex; align-items: center; padding: 0 18px; gap: 24px;
   }
-  .bot { display: grid; grid-template-columns: repeat(12, 5px); grid-auto-rows: 5px; }
-  .bot i { display: block; width: 5px; height: 5px; }
-  .bot .k { background: var(--white); } .bot .a { background: var(--yellow); }
-  .bot .e { background: var(--green); } .bot .mo { background: var(--pink); }
-  .bot.blink .e { background: var(--bg); }
-  .stack { width: 100%; display: flex; flex-direction: column; gap: 4px; }
-  .row {
-    display: grid; grid-template-columns: 1fr auto; column-gap: 8px; font-size: 12px; padding: 4px 7px;
-    border: 1px solid var(--line); color: var(--mute); transition: all .35s;
-  }
-  .row b { font-weight: 700; letter-spacing: .06em; }
-  .row .d { display: block; font-size: 11px; opacity: .8; margin-top: 1px; }
-  .row .st { align-self: center; letter-spacing: .08em; font-size: 11px; }
-  .row.lock { color: var(--white); border-color: rgba(125,255,179,.35); background: rgba(125,255,179,.06); }
-  .row.lock .st { color: var(--green); }
-  .row.new { animation: flash .8s ease-out; }
-  @keyframes flash { 0% { background: rgba(255,79,216,.45); border-color: var(--pink); } 100% {} }
+  .tape .k { font-size: 12px; letter-spacing: .14em; color: var(--mute); }
+  .tape .t { flex: 1; font-size: 15px; color: var(--white); letter-spacing: .02em; white-space: nowrap; overflow: hidden; }
+  .tape .t::after { content: "▍"; color: var(--pink); animation: blink 1s steps(2) infinite; margin-left: 2px; }
+  .pill { font-size: 11px; letter-spacing: .14em; color: var(--pink); background: rgba(255,61,143,.14); border: 1px solid rgba(255,61,143,.35); padding: 5px 12px; border-radius: 3px; }
+  .pill::before { content: "● "; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: .15; } }
 
-  /* right panel */
-  .now { border: 1px solid var(--line); background: var(--panel); padding: 18px 22px; display: flex; flex-direction: column; }
-  .now-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-  .now-h .t { font-size: 15px; color: var(--yellow); letter-spacing: .14em; }
-  .live { font-size: 12px; color: var(--green); letter-spacing: .14em; }
-  .live::before { content: "● "; animation: blip 1s steps(2) infinite; }
-  @keyframes blip { 50% { opacity: .2; } }
-  .stat { flex: 1; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); }
-  .stat .lbl { max-width: 150px; line-height: 1.4; }
-  .stat .v { font-size: 42px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; text-align: right; }
-  .stat .v.zero { color: var(--mute) !important; }
-  .stat .d { font-size: 11px; color: var(--mute); letter-spacing: .1em; text-align: right; margin-top: 5px; }
+  /* ---------- chips ---------- */
+  .chips { position: absolute; top: 912px; left: 36px; right: 36px; height: 94px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .chip { position: relative; border: 1px solid var(--line); background: var(--panel); border-radius: 4px; padding: 12px 14px 10px 16px; overflow: hidden; }
+  .chip::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 2px; background: var(--c); box-shadow: 0 0 8px var(--c); }
+  .chip .lab { font-size: 10px; letter-spacing: .12em; color: var(--mute); }
+  .chip .val { margin-top: 12px; font-size: 22px; font-weight: 700; color: var(--c); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .chip .sub { margin-top: 9px; font-size: 10px; color: var(--dim); letter-spacing: .02em; white-space: nowrap; }
+  .spark { position: absolute; right: 10px; top: 42px; width: 44px; height: 16px; overflow: hidden; }
+  .spark svg { width: 120px; height: 16px; animation: slide 3s linear infinite; }
+  .spark.flat svg { animation: none; }
+  @keyframes slide { to { transform: translateX(-60px); } }
 
-  /* ---------- CARDS ---------- */
-  .cards { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 14px; }
-  .card { border: 1px solid var(--line); background: var(--panel); padding: 16px 18px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
-  .card-h { display: flex; justify-content: space-between; margin-bottom: 10px; }
-  .card-h .t { font-size: 13px; color: var(--yellow); letter-spacing: .14em; }
+  /* ---------- panels ---------- */
+  .panels { position: absolute; top: 1018px; left: 36px; right: 36px; height: 298px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .panel { border: 1px solid var(--line); background: var(--panel); border-radius: 4px; padding: 14px 20px 12px; position: relative; overflow: hidden; }
+  .ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .ph .h { font-size: 13px; letter-spacing: .12em; color: var(--white); font-weight: 700; }
+  .ph .s { font-size: 10px; color: var(--dim); letter-spacing: .06em; }
 
-  /* inventory */
-  .inv { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 18px 0 20px; }
-  .ir { display: grid; grid-template-columns: 96px 1fr 70px; align-items: center; column-gap: 8px; font-size: 12px; }
-  .ir .n { color: var(--mute); letter-spacing: .08em; }
-  .ir .c { text-align: right; color: var(--white); font-variant-numeric: tabular-nums; transition: color .3s; }
-  .track { position: relative; height: 14px; background: var(--track); }
-  .fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0; }
-  .lane { position: absolute; left: 104px; right: 78px; top: 0; bottom: 0; pointer-events: none; }
-  .axis { position: absolute; left: 104px; right: 78px; bottom: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--mute); }
-  .head { position: absolute; top: 0; bottom: 16px; width: 2px; background: var(--pink); box-shadow: 0 0 10px var(--pink); left: 104px; z-index: 2; }
-  .head::after { content: attr(data-t); position: absolute; top: -1px; left: 6px; font-size: 11px; color: var(--pink); white-space: nowrap; }
-  .head.flip::after { left: auto; right: 6px; }
+  .log { position: relative; height: 238px; overflow: hidden; }
+  .vr { display: grid; grid-template-columns: 18px 1fr auto; column-gap: 8px; align-items: center; height: 29.75px; overflow: hidden; }
+  .vr .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 8px var(--c); }
+  .vr .ty { display: block; font-size: 11.5px; color: var(--c); line-height: 13px; }
+  .vr .tx { display: block; font-size: 12.5px; color: var(--white); line-height: 15px; }
+  .vr .src { font-size: 10px; color: var(--dim); align-self: start; padding-top: 3px; }
+  .vr.enter { animation: enter .6s cubic-bezier(.2,.8,.2,1); }
+  @keyframes enter { from { height: 0; opacity: 0; background: rgba(255,61,143,.25); } to { height: 29.75px; opacity: 1; background: transparent; } }
+  .log::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 90px; background: linear-gradient(transparent, var(--panel)); pointer-events: none; }
 
-  /* notes */
-  .note { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; transition: opacity .3s, transform .3s; }
-  .note.out { opacity: 0; transform: translateY(8px); }
-  .who { font-size: 30px; font-weight: 800; letter-spacing: .04em; }
-  .who .ar { color: var(--mute); font-weight: 400; }
-  .msg { font-size: 22px; color: var(--white); }
-  .pips { display: flex; gap: 6px; }
-  .pips i { width: 26px; height: 4px; background: #23232c; transition: background .3s; }
-  .pips i.on { background: var(--pink); }
+  .cost { display: grid; grid-template-columns: 128px 1fr 78px; align-items: center; column-gap: 12px; height: 38px; }
+  .cost .n { font-size: 13px; color: var(--white); line-height: 15px; }
+  .cost .n i { display: block; font-style: normal; font-size: 10px; color: var(--dim); }
+  .cost .tr { position: relative; height: 7px; background: #15151e; border-radius: 1px; }
+  .cost .f { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, color-mix(in srgb, var(--c) 45%, transparent), var(--c)); }
+  .cost .f::after { content: ""; position: absolute; right: -2px; top: -2px; bottom: -2px; width: 5px; background: #fff; box-shadow: 0 0 10px var(--c), 0 0 4px #fff; border-radius: 1px; }
+  .cost .p { text-align: right; font-size: 15px; color: var(--c); font-variant-numeric: tabular-nums; }
+  .lands { margin-top: 12px; }
+  .split { margin-top: 7px; height: 16px; display: flex; gap: 2px; background: #15151e; }
+  .split div { width: 0; height: 100%; font-size: 9px; line-height: 16px; padding-left: 6px; color: #05050a; white-space: nowrap; overflow: hidden; letter-spacing: .06em; font-weight: 700; }
 
-  /* math */
-  .math { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-  .mr { display: grid; grid-template-columns: 1fr auto; align-items: baseline; font-size: 15px; padding: 5px 0; border-bottom: 1px dashed #22222b; color: var(--mute); transition: color .4s; }
-  .mr .v { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .mr.on { color: var(--white); }
-  .mr .v { opacity: .25; transition: opacity .4s; }
-  .mr.on .v { opacity: 1; }
-  .vs { display: grid; grid-template-columns: 58px 1fr 58px; align-items: center; column-gap: 8px; font-size: 11px; color: var(--mute); letter-spacing: .08em; }
-  .vs .track { height: 8px; }
-  .vs .fill { transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
-  .vs .c { text-align: right; }
-
-  /* honest */
-  .honest { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 12px; }
-  .legend { display: flex; justify-content: space-between; font-size: 13px; letter-spacing: .06em; }
-  .hb { display: grid; grid-template-columns: 70px 1fr; align-items: center; column-gap: 10px; font-size: 11px; color: var(--mute); letter-spacing: .08em; }
-  .hbar { position: relative; height: 34px; background: var(--track); display: flex; }
-  .sl { width: 0; background: var(--green); box-shadow: 0 0 12px var(--green); transition: width .8s; }
-  .gen { width: 100%; background: var(--red); transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
-  .verdict { font-size: 14px; letter-spacing: .06em; }
-
-  /* footer */
-  footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--mute); letter-spacing: .14em; }
-  .prog { width: 260px; height: 3px; background: #1a1a22; position: relative; }
-  .prog i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--yellow); }
-  .prog i.run { animation: prog var(--step, 7.5s) linear forwards; }
-  @keyframes prog { to { width: 100%; } }
+  footer { position: absolute; top: 1326px; left: 40px; right: 40px; display: flex; justify-content: space-between; }
+  footer span { font-size: 10px; letter-spacing: .16em; color: var(--dim); }
 </style>
 </head>
 <body>
 <div class="page" id="page">
 
   <header>
-    <div class="h-left">
-      <div class="lbl">OPS FILE // 30S LOOP</div>
-      <h1>THE SPLIT-BRAIN FILE</h1>
-      <div class="sub">Why your agents are <span class="p">400x</span> too expensive</div>
-      <div class="motto"><span class="g">JEV DECIDES.</span> <span class="y">CLAUDE WRITES.</span> <span class="o">CODE DOES.</span></div>
+    <div>
+      <div class="brand"><span class="jev">JEV</span><span class="nl">neural loop</span></div>
+      <div class="tiny cap">TEN REPOS · ONE BRAIN · ZERO PROSE · NUMBER AGAINST A LIST</div>
     </div>
-    <div class="h-right">
-      <div class="clock" id="clock">T+00</div>
-      <div class="phase" id="phase">AUDIT</div>
+    <div class="counters">
+      <div class="ctr"><div class="tiny">REPOS</div><div class="v" id="cRepos">10</div></div>
+      <div class="ctr"><div class="tiny">SIGNALS/S</div><div class="v p" id="cSig">13.2</div></div>
+      <div class="ctr"><div class="tiny">JUDGED</div><div class="v" id="cJud">48,310</div></div>
+      <div class="ctr"><div class="tiny">ROWS/S</div><div class="v" id="cRows">819</div></div>
     </div>
   </header>
 
-  <section class="strip">
-    <div class="chip" id="c0"><span class="k">JEV</span><span class="g">$0.042 / M IN</span><span class="m">·</span><span>OUTPUT FREE</span><span class="m">·</span><span>70–500MS</span></div>
-    <div class="chip" id="c1"><span>4,700 CALLS</span><span class="m">·</span><span class="y">$1.83</span></div>
-    <div class="chip" id="c2"><span class="k">SAME SET ON SONNET</span><span class="r">~$47</span></div>
-  </section>
+  <canvas id="stage"></canvas>
+  <div id="pods"></div>
 
-  <section class="top">
-    <div class="radar">
-      <div class="sweep"></div>
-      <svg viewBox="0 0 540 540">
-        <g fill="none" stroke="#1f1f28">
-          <circle cx="270" cy="270" r="240"/>
-          <circle cx="270" cy="270" r="210" stroke="#2a2a34"/>
-          <circle cx="270" cy="270" r="140"/>
-          <circle cx="270" cy="270" r="70"/>
-          <line x1="270" y1="20" x2="270" y2="520"/>
-          <line x1="20" y1="270" x2="520" y2="270"/>
-        </g>
-        <g id="ticks" stroke="#2a2a34"></g>
-        <g id="spokes"></g>
-        <g id="nodes"></g>
-      </svg>
-      <div class="core">
-        <div class="bot" id="bot"></div>
-        <div class="stack" id="stack"></div>
+  <div class="hud">
+    <span id="cam">CAM 1247 · YAW 21.8° · PITCH 17.2°</span>
+    <span>FIELD R 560 · 4 RINGS · 12 SIGNALS / LOOP</span>
+  </div>
+
+  <div class="tape">
+    <span class="k">TAPE</span>
+    <span class="t" id="tape"></span>
+    <span class="pill">LIVE</span>
+  </div>
+
+  <div class="chips" id="chips"></div>
+
+  <div class="panels">
+    <div class="panel">
+      <div class="ph"><span class="h">LIVE VERDICTS</span><span class="s">from the ten repos</span></div>
+      <div class="log" id="log"></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="h">WHAT IT COSTS · FROM THE ARTICLE</span></div>
+      <div id="costs"></div>
+      <div class="lands">
+        <div class="tiny">WHERE THE WORK LANDS</div>
+        <div class="split">
+          <div id="sJ" style="background:var(--pink)">JEV · decide 75%</div>
+          <div id="sL" style="background:var(--purple)">LLM · write</div>
+          <div id="sC" style="background:var(--blue)">CODE</div>
+        </div>
       </div>
     </div>
-
-    <div class="now">
-      <div class="now-h"><span class="t">WHAT EXISTS NOW</span><span class="live">LIVE</span></div>
-      <div class="stat"><div class="lbl">decisions</div><div><div class="v g" id="s0">0</div><div class="d" id="d0">—</div></div></div>
-      <div class="stat"><div class="lbl">claude calls kept</div><div><div class="v y" id="s1">0</div><div class="d" id="d1">—</div></div></div>
-      <div class="stat"><div class="lbl">claude calls killed</div><div><div class="v p" id="s2">0</div><div class="d" id="d2">—</div></div></div>
-      <div class="stat"><div class="lbl">latency ms</div><div><div class="v w" id="s3">0</div><div class="d" id="d3">—</div></div></div>
-      <div class="stat"><div class="lbl">cost</div><div><div class="v o" id="s4">$0.00</div><div class="d" id="d4">—</div></div></div>
-    </div>
-  </section>
-
-  <section class="cards">
-    <div class="card">
-      <div class="card-h"><span class="t">THE INVENTORY</span><span class="lbl">0–30 MIN</span></div>
-      <div class="inv" id="inv">
-        <div class="lane" id="lane"></div>
-        <div class="head" id="head" data-t="T+00"></div>
-        <div class="axis"><span>0</span><span>10</span><span>20</span><span>30</span></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-h"><span class="t">THE NOTES</span><span class="lbl" id="noteN">1 / 4</span></div>
-      <div class="note" id="note">
-        <div class="who" id="who"></div>
-        <div class="msg" id="msg"></div>
-      </div>
-      <div class="pips" id="pips"><i></i><i></i><i></i><i></i></div>
-    </div>
-
-    <div class="card">
-      <div class="card-h"><span class="t">THE MATH</span><span class="lbl" id="mathTag">PENDING</span></div>
-      <div class="math">
-        <div class="mr" id="m0"><span>4,700 REQ · JEV</span><span class="v y">$1.83</span></div>
-        <div class="mr" id="m1"><span>SAME SET · SONNET</span><span class="v r">~$47</span></div>
-        <div class="vs"><span>JEV</span><div class="track"><div class="fill" id="vsJ" style="background:var(--green)"></div></div><span class="c">$1.83</span></div>
-        <div class="vs"><span>SONNET</span><div class="track"><div class="fill" id="vsS" style="background:var(--red)"></div></div><span class="c">~$47</span></div>
-        <div class="mr" id="m2"><span>CODE REVIEW</span><span class="v"><span class="m">$1.47 →</span> <span class="g">$0.19</span></span></div>
-        <div class="mr" id="m3"><span>HONEST SAVE</span><span class="v p">70–80%</span></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-h"><span class="t">THE HONEST PART</span><span class="lbl">PER RUN</span></div>
-      <div class="honest">
-        <div class="legend"><span class="g">■ JEV DECISION</span><span class="r">■ CLAUDE GENERATION</span></div>
-        <div class="hb"><span>BEFORE</span><div class="hbar"><div class="gen" style="width:100%"></div></div></div>
-        <div class="hb"><span>SPLIT</span><div class="hbar"><div class="sl" id="sl"></div><div class="gen" id="gen"></div></div></div>
-        <div class="verdict" id="verdict"><span class="m">ALL CALLS → CLAUDE</span></div>
-      </div>
-    </div>
-  </section>
+  </div>
 
   <footer>
-    <span id="foot">STATE 1 / 4 · 7.5S</span>
-    <div class="prog"><i id="prog"></i></div>
-    <span>30S LOOP</span>
+    <span>NONE OF THE TEN GENERATE A WORD</span>
+    <span>JEV · ILLUSTRATIVE · 30S LOOP</span>
   </footer>
 </div>
 
 <script>
 (function () {
   "use strict";
-  var NS = "http://www.w3.org/2000/svg";
   var $ = function (id) { return document.getElementById(id); };
+  var TAU = Math.PI * 2;
+  var LOOP = 30;                       // seconds; every periodic motion divides this
+  var W = 1080, H = 700, CX = 540, CY = 372;
+  var F = 900, D = 1150;               // focal length, camera distance
 
-  /* ---------- timing: 4 states x 7.5s = 30s cycle ---------- */
-  var STEP_MS = 7500;
-  $("page").style.setProperty("--step", STEP_MS / 1000 + "s");
+  /* deterministic RNG so every load looks the same */
+  var seed = 7;
+  function rnd() { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }
 
-  /* ---------- data ---------- */
-  var NODES = ["ROUTER", "CLASSIFY", "THRESHOLD", "FALLBACK", "GENERATE"];
-  var LAYERS = [
-    ["DECISION AUDIT", "31 bounded / 4 generation"],
-    ["JEV CALL", "enum + confidence"],
-    ["THRESHOLD", "0.87"],
-    ["FALLBACK", "below 0.87 → Claude"],
-    ["GENERATE", "Claude only if needed"]
+  /* ================= DATA ================= */
+  var PODS = [
+    { ring: 0, a: 3.30, name: "pg-jev",     sub: "ask the table" },
+    { ring: 0, a: 4.10, name: "trader",     sub: "monad 300ms" },
+    { ring: 1, a: 1.20, name: "ultrafast",  sub: "picks the click" },
+    { ring: 1, a: 4.30, name: "doom",       sub: "WASD frame" },
+    { ring: 2, a: 5.40, name: "t-rex",      sub: "jump / duck / run", hi: true },
+    { ring: 0, a: 5.95, name: "chess",      sub: "vs search" },
+    { ring: 0, a: 0.30, name: "drone",      sub: "camera" },
+    { ring: 0, a: 1.20, name: "tax",        sub: "261 forms" },
+    { ring: 0, a: 2.35, name: "killmyidea", sub: "kill / fix / ship" }
   ];
-  var INV = [
-    { n: "DECISIONS",  a: 0,  b: 10, col: "var(--green)" },
-    { n: "FALLBACKS",  a: 10, b: 20, col: "var(--pink)" },
-    { n: "GENERATION", a: 18, b: 30, col: "var(--red)" },
-    { n: "DOLLARS",    a: 0,  b: 30, col: "var(--orange)" }
+  var TAPE = [
+    "t-rex · jump / duck · decided in 4 ms",
+    "doom · strafe left · WASD frame in 6 ms",
+    "ultrafast · keeps the click · 3 ms",
+    "pg-jev · answers the table · 11 ms",
+    "tax · page accepted · $0.001",
+    "chess · instinct overruled · 9 ms",
+    "killmyidea · verdict: fix · 14 ms",
+    "trader · monad hold · 300 ms",
+    "drone · bank left · 5 ms",
+    "curate · 500 emails batched",
+    "t-rex · duck the cactus · 4 ms",
+    "noul · idea scored · ship",
+    "doom · fire · 5 ms",
+    "chess · e4 kept · 8 ms",
+    "t-rex · run · decided in 4 ms"
   ];
-  // stats: decisions, kept, killed, latency, cost
-  var STATES = [
-    { t: 0,  phase: "AUDIT",              nodes: 1, locked: 1,
-      stats: [0, 0, 0, 0, 0],
-      sub:   ["35 MAPPED", "NOT ROUTED", "NOT ROUTED", "—", "—"],
-      inv:   ["31 / 4", "0", "0", "$0.00"],
-      note:  ["AUDIT", "31 yes/no, 4 writes"],
-      chips: [0, 0, 0], math: [0, 0, 0, 0], tag: "PENDING",
-      split: { sl: 0, gen: 100 }, verdict: "<span class='m'>ALL CALLS → CLAUDE</span>" },
-    { t: 8,  phase: "JEV RUNNING",        nodes: 2, locked: 2,
-      stats: [4700, 4700, 0, 480, 1.83],
-      sub:   ["TYPED ANSWERS", "STILL ROUTED", "GATE OFF", "JEV 70–500", "JEV · 4,700 CALLS"],
-      inv:   ["4,700", "0", "0", "$1.83"],
-      note:  ["JEV", "typed answer"],
-      chips: [1, 1, 1], math: [1, 1, 0, 0], tag: "JEV vs SONNET",
-      split: { sl: 2, gen: 98 }, verdict: "<span class='g'>JEV DECIDES</span> <span class='m'>· CLAUDE STILL ON ALL</span>" },
-    { t: 18, phase: "THRESHOLD ON",       nodes: 4, locked: 4,
-      stats: [4700, 612, 4088, 210, 1.83],
-      sub:   ["TYPED ANSWERS", "BELOW 0.87", "HANDLED BY JEV", "P50", "JEV · 4,700 CALLS"],
-      inv:   ["4,700", "612", "0", "$1.83"],
-      note:  ["GATE", "0.87 keep or hand off"],
-      chips: [1, 1, 1], math: [1, 1, 0, 0], tag: "GATE 0.87",
-      split: { sl: 2, gen: 40 }, verdict: "<span class='p'>CLAUDE CALLS DROP</span> <span class='m'>· GATE 0.87</span>" },
-    { t: 30, phase: "SPLIT-BRAIN LOCKED", nodes: 5, locked: 5,
-      stats: [4700, 540, 4160, 140, 0.19],
-      sub:   ["TYPED ANSWERS", "FALLBACK + 4 WRITES", "HANDLED BY JEV", "P50", "CODE REVIEW · WAS $1.47"],
-      inv:   ["4,700", "372", "168", "$0.19"],
-      note:  ["CLAUDE", "writes only the 4"],
-      chips: [1, 1, 1], math: [1, 1, 1, 1], tag: "LOCKED",
-      split: { sl: 2, gen: 24 }, verdict: "<span class='r'>GENERATION STILL COSTS</span> <span class='m'>→</span> <span class='p'>SAVE 70–80%</span>" }
+  var KIND = { choice: "var(--pink)", noul: "var(--green)", score: "var(--purple)" };
+  var VERDICTS = [
+    ["choice", "t-rex jumps this frame", "t-rex"],
+    ["noul", "curate batch · 500 emails", "curate"],
+    ["choice", "t-rex ducks the cactus", "t-rex"],
+    ["score", "tax page accepted · $0.001", "tax"],
+    ["noul", "pg-jev answers the table", "pg-jev"],
+    ["score", "chess instinct overruled", "chess"],
+    ["choice", "ultrafast keeps the click", "ultrafast"],
+    ["noul", "idea scored · ship", "killmyidea"]
+  ];
+  var CHIPS = [
+    ["INPUT", "$0.042", "per 1M tokens", "var(--green)"],
+    ["OUTPUT", "FREE", "decisions, not text", "var(--blue)"],
+    ["10K DECISIONS", "≈ $0.42", "~1k tokens total", "var(--yellow)"],
+    ["P50 LATENCY", "217 ms", "choice · score · noul", "var(--purple)"],
+    ["GATE", "≥ 0.85", "else → human", "var(--pink)"],
+    ["PROSE", "0", "words generated", "var(--pink)", true]
+  ];
+  var COSTS = [
+    ["flight search", "~7 s",     "$0.0039", 0.20, "var(--blue)"],
+    ["1k papers",     "256 ms",   "$0.08",   0.42, "var(--green)"],
+    ["500 emails",    "batch",    "3.5¢",    0.32, "var(--yellow)"],
+    ["compaction",    "1M tokens","~1 s",    0.50, "var(--pink)"],
+    ["10k decisions", "~1k tok",  "$0.42",   0.20, "var(--purple)"]
   ];
 
-  /* ---------- radar ---------- */
-  var C = 270, R = 210, nodeEls = [], spokeEls = [];
-  for (var d = 0; d < 360; d += 10) {
-    var a = d * Math.PI / 180, r1 = d % 30 ? 234 : 228;
-    var l = document.createElementNS(NS, "line");
-    l.setAttribute("x1", C + Math.cos(a) * r1); l.setAttribute("y1", C + Math.sin(a) * r1);
-    l.setAttribute("x2", C + Math.cos(a) * 240); l.setAttribute("y2", C + Math.sin(a) * 240);
-    $("ticks").appendChild(l);
-  }
-  NODES.forEach(function (name, i) {
-    var ang = (-90 + i * 72) * Math.PI / 180;
-    var x = C + Math.cos(ang) * R, y = C + Math.sin(ang) * R;
-    var sp = document.createElementNS(NS, "line");
-    sp.setAttribute("x1", C); sp.setAttribute("y1", C); sp.setAttribute("x2", x); sp.setAttribute("y2", y);
-    sp.setAttribute("class", "spoke");
-    $("spokes").appendChild(sp); spokeEls.push(sp);
+  /* ================= LOWER COCKPIT ================= */
+  $("chips").innerHTML = CHIPS.map(function (c) {
+    var wave = "M0 8 " + Array.apply(null, Array(8)).map(function (_, i) {
+      return "Q" + (i * 15 + 3.75) + " " + (i % 2 ? 14 : 2) + " " + (i * 15 + 7.5) + " 8 T" + (i * 15 + 15) + " 8";
+    }).join(" ");
+    var path = c[4] ? "M0 8 L120 8" : wave;
+    return "<div class='chip' style='--c:" + c[3] + "'><div class='lab'>" + c[0] + "</div>" +
+      "<div class='spark" + (c[4] ? " flat" : "") + "'><svg viewBox='0 0 120 16'><path d='" + path + "' fill='none' stroke='" + c[3] + "' stroke-width='1.4' opacity='.8'/></svg></div>" +
+      "<div class='val'>" + c[1] + "</div><div class='sub'>" + c[2] + "</div></div>";
+  }).join("");
 
-    var g = document.createElementNS(NS, "g");
-    g.setAttribute("class", "node");
-    var halo = document.createElementNS(NS, "circle");
-    halo.setAttribute("class", "halo"); halo.setAttribute("cx", x); halo.setAttribute("cy", y); halo.setAttribute("r", 11);
-    var dot = document.createElementNS(NS, "circle");
-    dot.setAttribute("class", "dot"); dot.setAttribute("cx", x); dot.setAttribute("cy", y); dot.setAttribute("r", 9);
-    var tx = document.createElementNS(NS, "text");
-    // top: above; sides: above and pushed outward clear of the core; bottom: below
-    if (i === 1 || i === 4) {
-      tx.setAttribute("x", i === 1 ? x + 30 : x - 30);
-      tx.setAttribute("y", y - 20);
-      tx.setAttribute("style", "text-anchor:" + (i === 1 ? "end" : "start"));
-    } else {
-      tx.setAttribute("x", x);
-      tx.setAttribute("y", i === 0 ? y - 20 : y + 30);
-    }
-    tx.textContent = name;
-    g.appendChild(halo); g.appendChild(dot); g.appendChild(tx);
-    $("nodes").appendChild(g); nodeEls.push(g);
-  });
+  $("costs").innerHTML = COSTS.map(function (c, i) {
+    return "<div class='cost' style='--c:" + c[4] + "'><div class='n'>" + c[0] + "<i>" + c[1] + "</i></div>" +
+      "<div class='tr'><div class='f' id='cf" + i + "'></div></div><div class='p'>" + c[2] + "</div></div>";
+  }).join("");
 
-  /* ---------- pixel robot ---------- */
-  var BOT = [
-    ".....aa.....",
-    "......k.....",
-    "..kkkkkkkk..",
-    ".k........k.",
-    ".k.ee..ee.k.",
-    ".k.ee..ee.k.",
-    ".k........k.",
-    ".k..mmmm..k.",
-    "..kkkkkkkk..",
-    "...k....k...",
-    ".kkkkkkkkkk.",
-    ".k.k....k.k."
-  ];
-  var botEl = $("bot"), CLS = { k: "k", a: "a", e: "e", m: "mo" };
-  BOT.join("").split("").forEach(function (ch) {
-    var i = document.createElement("i");
-    if (CLS[ch]) i.className = CLS[ch];
-    botEl.appendChild(i);
-  });
-  setInterval(function () {
-    botEl.classList.add("blink");
-    setTimeout(function () { botEl.classList.remove("blink"); }, 140);
-  }, 2600);
-
-  /* ---------- center layers ---------- */
-  var rowEls = LAYERS.map(function (L, i) {
+  function verdictRow(v, enter) {
     var r = document.createElement("div");
-    r.className = "row";
-    r.innerHTML = "<span><b>" + String(i + 1).padStart(2, "0") + " " + L[0] + "</b><span class='d'>" + L[1] + "</span></span><span class='st'>WAIT</span>";
-    $("stack").appendChild(r);
+    r.className = "vr" + (enter ? " enter" : "");
+    r.style.setProperty("--c", KIND[v[0]]);
+    r.innerHTML = "<span class='dot'></span><span><span class='ty'>" + v[0] + "</span><span class='tx'>" + v[1] + "</span></span><span class='src'>" + v[2] + "</span>";
     return r;
-  });
+  }
+  VERDICTS.forEach(function (v) { $("log").appendChild(verdictRow(v, false)); });
+  var appended = 0;
+  function appendVerdict() {
+    appended++;
+    // appending 7,6,...,0 returns the list to its starting order every 8 appends (= one 30s loop)
+    var v = VERDICTS[(8 - (appended % 8)) % 8];
+    var log = $("log");
+    log.insertBefore(verdictRow(v, true), log.firstChild);
+    while (log.children.length > 9) log.removeChild(log.lastChild);
+  }
 
-  /* ---------- inventory ---------- */
-  var invRows = INV.map(function (row) {
+  var tapeIdx = -1;
+  function setTape(i, p) {
+    var s = TAPE[i];
+    $("tape").textContent = s.slice(0, Math.ceil(s.length * Math.min(1, p / 0.45)));
+  }
+
+  /* ================= 3D SCENE ================= */
+  var cv = $("stage"), ctx = cv.getContext("2d"), dpr = 1;
+  function sizeCanvas(scale) {
+    dpr = Math.max(1, Math.min(2, (window.devicePixelRatio || 1) * scale));
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  }
+
+  // --- brain particles (local: x = width, y = up, z = front/back) ---
+  var BR = [];
+  (function () {
+    var i, u, ph, dx, dy, dz, g, rr, side;
+    for (i = 0; i < 5600; i++) {
+      u = rnd() * 2 - 1; ph = rnd() * TAU;
+      dx = Math.sqrt(1 - u * u) * Math.cos(ph); dy = u; dz = Math.sqrt(1 - u * u) * Math.sin(ph);
+      // gyri: sharp ridges (|sin|) so creases read as dark sulci
+      var fold = Math.abs(Math.sin(dx * 8.5 + dy * 6.1 + Math.sin(dz * 5.3) * 1.6) * Math.sin(dz * 9.7 - dy * 4.4 + Math.cos(dx * 6.2)));
+      g = 1 + 0.085 * fold + 0.03 * Math.sin(dz * 23 + dx * 3) * Math.sin(dy * 19);
+      // longitudinal fissure between hemispheres
+      if (Math.abs(dx) < 0.09 && dy > -0.1) { g *= 0.84; fold = 0; }
+      side = dx < 0 ? -1 : 1;
+      rr = rnd() < 0.86 ? 0.95 + rnd() * 0.05 : 0.35 + rnd() * 0.55;
+      var y = dy * 122 * g * rr; if (y < -40) y = -40 + (y + 40) * 0.6;   // flatter base
+      // temporal lobe bulge low at the sides
+      var tl = dy < 0 && dz > -0.2 ? 1 + 0.12 * Math.max(0, -dy) : 1;
+      BR.push([dx * 150 * g * rr * tl + side * 6, y + 10, dz * 185 * g * rr, rnd(), rr > 0.9 ? fold : 0.3]);
+    }
+    // cerebellum
+    for (i = 0; i < 520; i++) {
+      u = rnd() * 2 - 1; ph = rnd() * TAU;
+      var s = 0.85 + rnd() * 0.15, f = 1 + 0.08 * Math.sin(u * 40);
+      BR.push([Math.sqrt(1 - u * u) * Math.cos(ph) * 88 * s * f, -62 + u * 34 * s, -120 + Math.sqrt(1 - u * u) * Math.sin(ph) * 52 * s, rnd(), Math.abs(Math.sin(u * 40))]);
+    }
+    // brain stem
+    for (i = 0; i < 90; i++) {
+      var t = rnd(), a = rnd() * TAU;
+      BR.push([Math.cos(a) * 16, -50 - t * 45, -55 - t * 12 + Math.sin(a) * 16, rnd(), 0.3]);
+    }
+  })();
+  // neural links between nearby particles
+  var LINKS = [];
+  (function () {
+    for (var k = 0; k < 2600 && LINKS.length < 420; k++) {
+      var a = Math.floor(rnd() * 5600), b = Math.floor(rnd() * 5600);
+      var p = BR[a], q = BR[b];
+      var d2 = (p[0] - q[0]) * (p[0] - q[0]) + (p[1] - q[1]) * (p[1] - q[1]) + (p[2] - q[2]) * (p[2] - q[2]);
+      if (d2 < 55 * 55) LINKS.push([a, b]);
+    }
+  })();
+  var STARS = [];
+  for (var s = 0; s < 170; s++) STARS.push([rnd() * W, rnd() * H, rnd()]);
+
+  // --- rings ---  r, tiltX, tiltZ, sway amplitude (precession about Y), strands, spin dir
+  var RINGS = [
+    { r: 610, tx: -0.04, tz: 0.03,  sway: 0.10, strands: 12, dir: 1 },
+    { r: 300, tx: 1.28,  tz: 0.38,  sway: 0.55, strands: 3, dir: -1 },
+    { r: 345, tx: 0.95,  tz: -0.85, sway: 0.45, strands: 3, dir: 1 },
+    { r: 262, tx: -0.55, tz: 1.05,  sway: 0.60, strands: 2, dir: -1 }
+  ];
+  RINGS.forEach(function (R) {
+    R.off = [];
+    for (var k = 0; k < R.strands; k++) R.off.push([(rnd() - 0.5) * (R.r > 500 ? 46 : 16), (rnd() - 0.5) * (R.r > 500 ? 16 : 8)]);
+  });
+  var DIAMONDS = [[0, 0.9], [0, 2.0], [0, 3.8], [0, 5.1], [1, 0.3], [1, 2.7], [2, 1.9], [2, 3.4], [3, 0.8], [3, 4.4]];
+
+  // --- matrices ---
+  function mul(A, B) {
+    var C = [], i, j;
+    for (i = 0; i < 3; i++) for (j = 0; j < 3; j++) C[i * 3 + j] = A[i * 3] * B[j] + A[i * 3 + 1] * B[3 + j] + A[i * 3 + 2] * B[6 + j];
+    return C;
+  }
+  function rx(a) { var c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; }
+  function ry(a) { var c = Math.cos(a), s = Math.sin(a); return [c, 0, s, 0, 1, 0, -s, 0, c]; }
+  function rz(a) { var c = Math.cos(a), s = Math.sin(a); return [c, -s, 0, s, c, 0, 0, 0, 1]; }
+  var out = [0, 0, 0, 0];
+  function project(M, x, y, z) {
+    var X = M[0] * x + M[1] * y + M[2] * z, Y = M[3] * x + M[4] * y + M[5] * z, Z = M[6] * x + M[7] * y + M[8] * z;
+    var k = F / (D + Z);
+    out[0] = CX + X * k; out[1] = CY - Y * k; out[2] = Z; out[3] = k;
+    return out;
+  }
+
+  // --- pods (HTML labels) ---
+  var podEls = PODS.map(function (p) {
     var el = document.createElement("div");
-    el.className = "ir";
-    el.innerHTML = "<span class='n'>" + row.n + "</span><div class='track'><div class='fill'></div></div><span class='c'>0</span>";
-    el.querySelector(".fill").style.background = row.col;
-    $("inv").insertBefore(el, $("inv").querySelector(".axis"));
-    return { fill: el.querySelector(".fill"), c: el.querySelector(".c"), row: row };
+    el.className = "pod" + (p.hi ? " hi" : "");
+    el.innerHTML = "<b>" + p.name + "</b><i>" + p.sub + "</i>";
+    $("pods").appendChild(el);
+    return el;
   });
 
-  /* ---------- helpers ---------- */
-  var ease = function (t) { return 1 - Math.pow(1 - t, 3); };
-  function tween(dur, fn) {
-    var t0 = performance.now();
-    (function tick(now) {
-      var p = Math.min(1, (now - t0) / dur);
-      fn(ease(p));
-      if (p < 1) requestAnimationFrame(tick);
-    })(t0);
-  }
-  function fmt(n, k) {
-    if (k === 4) return "$" + n.toFixed(2);
-    return Math.round(n).toLocaleString("en-US");
-  }
-  function setPlayhead(min) {
-    var head = $("head");
-    head.style.left = (104 + $("lane").clientWidth * (min / 30)) + "px";
-    head.classList.toggle("flip", min > 15);
-    head.setAttribute("data-t", "T+" + String(Math.round(min)).padStart(2, "0"));
-  }
+  var NB = 8, bucketsA = [], bucketsB = [];
+  for (var b = 0; b < NB; b++) { bucketsA.push([]); bucketsB.push([]); }
 
-  /* ---------- render a state ---------- */
-  var idx = -1, cur = [0, 0, 0, 0, 0], curMin = 0;
-  function go(i) {
-    var S = STATES[i], wrap = i === 0, prevLocked = idx < 0 ? 0 : STATES[idx].locked;
-    idx = i;
+  function draw(t) {
+    var w = TAU * t / LOOP;                         // one full phase per loop
+    var yaw = 0.38 + 0.22 * Math.sin(w);
+    var pitch = 0.30 + 0.025 * Math.sin(2 * w);
+    var CAM = mul(rx(pitch), ry(yaw));
+    var beat = Math.pow(Math.max(0, Math.sin(TAU * t / 1.5)), 6);   // 20 beats per loop
+    var i, k, p, q, R;
 
-    $("clock").textContent = "T+" + String(S.t).padStart(2, "0");
-    $("phase").textContent = S.phase;
-    $("foot").textContent = "STATE " + (i + 1) + " / 4 · 7.5S";
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.globalCompositeOperation = "lighter";
 
-    // radar
-    nodeEls.forEach(function (n, k) {
-      n.classList.toggle("on", k < S.nodes);
-      n.classList.toggle("hot", k < S.nodes && k >= (wrap ? 0 : STATES[i - 1].nodes));
-      spokeEls[k].classList.toggle("on", k < S.nodes);
+    // stars
+    ctx.fillStyle = "rgba(255,160,220,.22)";
+    for (i = 0; i < STARS.length; i++) {
+      var st = STARS[i];
+      var tw = 0.5 + 0.5 * Math.sin(w * 3 + st[2] * 40);
+      ctx.globalAlpha = 0.25 + 0.5 * tw * st[2];
+      ctx.fillRect(st[0], st[1], 1.2, 1.2);
+    }
+    ctx.globalAlpha = 1;
+
+    // core glow
+    var gl = ctx.createRadialGradient(CX, CY - 10, 10, CX, CY - 10, 260);
+    gl.addColorStop(0, "rgba(255,40,110," + (0.22 + 0.16 * beat) + ")");
+    gl.addColorStop(1, "rgba(255,40,110,0)");
+    ctx.fillStyle = gl; ctx.fillRect(CX - 280, CY - 290, 560, 560);
+
+    // ---------- rings ----------
+    var RM = RINGS.map(function (R, ri) {
+      return mul(CAM, mul(ry(R.sway * Math.sin(w + ri * 1.7) + ri * 0.9), mul(rz(R.tz), rx(R.tx))));
     });
-    rowEls.forEach(function (r, k) {
-      var lock = k < S.locked;
-      r.classList.toggle("lock", lock);
-      r.querySelector(".st").textContent = lock ? "LOCKED" : "WAIT";
-      r.classList.remove("new");
-      if (lock && (wrap ? k === 0 : k >= prevLocked)) { void r.offsetWidth; r.classList.add("new"); }
-    });
+    for (b = 0; b < NB; b++) bucketsA[b].length = 0;
+    for (var ri = 0; ri < RINGS.length; ri++) {
+      R = RINGS[ri]; var M = RM[ri], N = R.r > 500 ? 260 : 160;
+      for (k = 0; k < R.strands; k++) {
+        var dr = R.off[k][0], dy = R.off[k][1], px = 0, py = 0, pz = 0;
+        for (i = 0; i <= N; i++) {
+          var a = TAU * i / N;
+          p = project(M, (R.r + dr) * Math.cos(a), dy, (R.r + dr) * Math.sin(a));
+          if (i > 0) {
+            var depth = (p[2] + pz) / 2;
+            var lvl = Math.max(0, Math.min(NB - 1, Math.floor((1 - (depth + 700) / 1400) * NB)));
+            bucketsA[lvl].push(px, py, p[0], p[1]);
+          }
+          px = p[0]; py = p[1]; pz = p[2];
+        }
+      }
+    }
+    ctx.lineWidth = 1;
+    for (b = 0; b < NB; b++) {
+      var L = bucketsA[b]; if (!L.length) continue;
+      ctx.strokeStyle = "rgba(255," + (70 + b * 10) + "," + (170 + b * 6) + "," + (0.09 + b * 0.07) + ")";
+      ctx.beginPath();
+      for (i = 0; i < L.length; i += 4) { ctx.moveTo(L[i], L[i + 1]); ctx.lineTo(L[i + 2], L[i + 3]); }
+      ctx.stroke();
+    }
+    // sparkles riding the strands
+    ctx.fillStyle = "rgba(255,220,240,.9)";
+    for (ri = 0; ri < RINGS.length; ri++) {
+      R = RINGS[ri];
+      for (k = 0; k < 26; k++) {
+        var sa = k * 2.39 + R.dir * w * (ri + 1), so = R.off[k % R.strands];
+        p = project(RM[ri], (R.r + so[0]) * Math.cos(sa), so[1], (R.r + so[0]) * Math.sin(sa));
+        var sz = 1.2 + 1.6 * p[3];
+        ctx.globalAlpha = 0.35 + 0.6 * Math.max(0, Math.min(1, (400 - p[2]) / 800));
+        ctx.fillRect(p[0] - sz / 2, p[1] - sz / 2, sz, sz);
+      }
+    }
+    ctx.globalAlpha = 1;
 
-    // strip
-    ["c0", "c1"].forEach(function (id, k) { $(id).classList.toggle("on", !!S.chips[k]); });
-    $("c2").classList.toggle("warn", !!S.chips[2]);
+    // green signals on the field ring (2 laps per loop)
+    for (k = 0; k < 3; k++) {
+      var head = 2 * w + k * TAU / 3;
+      for (i = 0; i < 46; i++) {
+        var ca = head - i * 0.012;
+        p = project(RM[0], 610 * Math.cos(ca), 0, 610 * Math.sin(ca));
+        var cs = (i === 0 ? 4 : 2.4) * p[3];
+        ctx.fillStyle = "rgba(94,240,168," + (0.9 * (1 - i / 46)) + ")";
+        ctx.fillRect(p[0] - cs / 2, p[1] - cs / 2, cs, cs);
+      }
+    }
 
-    // counters + inventory playhead
-    var from = wrap ? [0, 0, 0, 0, 0] : cur.slice(), to = S.stats, fromMin = wrap ? 0 : curMin;
-    S.sub.forEach(function (s, k) { $("d" + k).textContent = s; });
-    tween(1400, function (p) {
-      to.forEach(function (v, k) {
-        var n = from[k] + (v - from[k]) * p, el = $("s" + k);
-        el.textContent = fmt(n, k);
-        el.classList.toggle("zero", n < 0.005);
-      });
-      var m = fromMin + (S.t - fromMin) * p;
-      setPlayhead(m);
-      invRows.forEach(function (ir, k) {
-        var f = ir.row, frac = Math.max(0, Math.min(1, (m - f.a) / (f.b - f.a)));
-        ir.fill.style.left = (f.a / 30 * 100) + "%";
-        ir.fill.style.width = ((f.b - f.a) / 30 * 100 * frac) + "%";
-      });
-    });
-    invRows.forEach(function (ir, k) {
-      ir.c.textContent = S.inv[k];
-      ir.c.style.color = /^(0|\$0\.00)$/.test(S.inv[k]) ? "var(--mute)" : "var(--white)";
-    });
-    cur = to.slice(); curMin = S.t;
+    // diamonds
+    ctx.lineWidth = 1.2;
+    for (i = 0; i < DIAMONDS.length; i++) {
+      var dm = DIAMONDS[i]; R = RINGS[dm[0]];
+      p = project(RM[dm[0]], R.r * Math.cos(dm[1]), 0, R.r * Math.sin(dm[1]));
+      var ds = 11 * p[3];
+      var al = 0.35 + 0.55 * Math.max(0, Math.min(1, (500 - p[2]) / 1000));
+      ctx.strokeStyle = "rgba(255,70,140," + al + ")";
+      ctx.beginPath();
+      ctx.moveTo(p[0], p[1] - ds); ctx.lineTo(p[0] + ds, p[1]); ctx.lineTo(p[0], p[1] + ds); ctx.lineTo(p[0] - ds, p[1]); ctx.closePath();
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255,120,180," + al + ")";
+      ctx.fillRect(p[0] - 1.5, p[1] - 1.5, 3, 3);
+    }
 
-    // notes
-    var note = $("note");
-    note.classList.add("out");
-    setTimeout(function () {
-      $("who").innerHTML = "<span class='y'>" + S.note[0] + "</span> <span class='ar'>→</span>";
-      $("msg").textContent = S.note[1];
-      $("noteN").textContent = (i + 1) + " / 4";
-      note.classList.remove("out");
-    }, 300);
-    Array.prototype.forEach.call($("pips").children, function (p, k) { p.classList.toggle("on", k <= i); });
+    // ---------- brain ----------
+    var BM = mul(CAM, mul(ry(1.25 + 0.4 * Math.sin(w)), rx(0.1)));
+    var scale = 1 + 0.03 * beat;
+    var wave = -220 + 440 * ((t % 3.75) / 3.75);    // front-to-back pulse, 8 sweeps per loop
+    for (b = 0; b < NB; b++) bucketsB[b].length = 0;
+    var P2 = new Float32Array(BR.length * 2);
+    for (i = 0; i < BR.length; i++) {
+      q = BR[i];
+      p = project(BM, q[0] * scale, q[1] * scale, q[2] * scale);
+      P2[i * 2] = p[0]; P2[i * 2 + 1] = p[1];
+      var near = Math.max(0, Math.min(1, (200 - p[2]) / 400));
+      var hot = Math.max(0, 1 - Math.abs(q[2] - wave) / 36);
+      var lv = Math.floor(Math.max(0, Math.min(NB - 1, near * 3 + q[4] * 4.2 + q[3] * 1.2 + hot * 3 + beat * 1.5 - 0.8)));
+      bucketsB[lv].push(p[0], p[1], 1.0 + 1.3 * p[3] * (0.6 + q[3] * 0.6));
+    }
+    // links first (under the particles)
+    ctx.strokeStyle = "rgba(255,80,150," + (0.10 + 0.08 * beat) + ")";
+    ctx.lineWidth = 0.6;
+    ctx.beginPath();
+    for (i = 0; i < LINKS.length; i++) {
+      var A = LINKS[i][0] * 2, B = LINKS[i][1] * 2;
+      ctx.moveTo(P2[A], P2[A + 1]); ctx.lineTo(P2[B], P2[B + 1]);
+    }
+    ctx.stroke();
+    for (b = 0; b < NB; b++) {
+      var Q = bucketsB[b]; if (!Q.length) continue;
+      ctx.fillStyle = "rgba(255," + (30 + b * 16) + "," + (80 + b * 14) + "," + (0.16 + b * 0.075) + ")";
+      for (i = 0; i < Q.length; i += 3) ctx.fillRect(Q[i] - Q[i + 2] / 2, Q[i + 1] - Q[i + 2] / 2, Q[i + 2], Q[i + 2]);
+    }
 
-    // math
-    S.math.forEach(function (on, k) { $("m" + k).classList.toggle("on", !!on); });
-    $("vsJ").style.width = S.math[0] ? (1.83 / 47 * 100) + "%" : "0%";
-    $("vsS").style.width = S.math[1] ? "100%" : "0%";
-    $("mathTag").textContent = S.tag;
+    // ---------- pods ----------
+    ctx.globalCompositeOperation = "source-over";
+    for (i = 0; i < PODS.length; i++) {
+      var pd = PODS[i]; R = RINGS[pd.ring];
+      var pa = pd.a + R.dir * w;                     // one lap per loop
+      p = project(RM[pd.ring], R.r * Math.cos(pa), 0, R.r * Math.sin(pa));
+      var x = p[0], y = p[1], z = p[2], ks = p[3];
+      // wire cube marker
+      var c = 7 * ks;
+      ctx.strokeStyle = pd.hi ? "rgba(255,61,143,.9)" : "rgba(255,150,200,.6)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - c, y - c, 2 * c, 2 * c);
+      ctx.strokeRect(x - c + 3 * ks, y - c - 3 * ks, 2 * c, 2 * c);
+      ctx.beginPath(); ctx.moveTo(x, y - c - 3 * ks); ctx.lineTo(x, y - 18 * ks); ctx.stroke();
+      var behind = z > 0 && Math.abs(x - CX) < 170 && Math.abs(y - CY) < 170;
+      var op = Math.max(0.35, Math.min(1, (700 - z) / 900)) * (behind ? 0.35 : 1);
+      var el = podEls[i];
+      el.style.transform = "translate(" + x.toFixed(1) + "px," + (y - 18 * ks).toFixed(1) + "px) translate(-50%,-100%) scale(" + (0.7 + 0.35 * ks).toFixed(3) + ")";
+      el.style.opacity = op.toFixed(2);
+      el.style.zIndex = String(1000 - Math.round(z));
+    }
 
-    // honest part
-    $("sl").style.width = S.split.sl + "%";
-    $("gen").style.width = S.split.gen + "%";
-    $("verdict").innerHTML = S.verdict;
-
-    // step progress
-    var pr = $("prog");
-    pr.classList.remove("run"); void pr.offsetWidth; pr.classList.add("run");
+    // HUD
+    $("cam").textContent = "CAM 1247 · YAW " + (yaw * 180 / Math.PI).toFixed(1) + "° · PITCH " + (pitch * 180 / Math.PI).toFixed(1) + "°";
   }
 
-  /* ---------- fit 1080x1350 to any window (fullscreen-ready) ---------- */
+  /* ================= LIVE NUMBERS ================= */
+  function ticks(t) {
+    var h = Math.floor(t * 2);   // changes twice a second, deterministic per loop
+    $("cSig").textContent = (13.2 + 0.3 * Math.sin(h * 1.7) * Math.cos(h * 0.9)).toFixed(1);
+    $("cRows").textContent = String(Math.round(819 + 11 * Math.sin(h * 2.3) + 5 * Math.cos(h * 1.1)));
+    $("cJud").textContent = (48310 + Math.floor(t * 13.2)).toLocaleString("en-US");
+  }
+  var ease = function (x) { x = Math.max(0, Math.min(1, x)); return 1 - Math.pow(1 - x, 3); };
+  function bars(t) {
+    for (var i = 0; i < COSTS.length; i++) {
+      $("cf" + i).style.width = (COSTS[i][3] * 100 * ease((t - 0.6 - i * 0.45) / 1.6)) + "%";
+    }
+    $("sJ").style.width = (75 * ease((t - 3.2) / 1.8)) + "%";
+    $("sL").style.width = (15 * ease((t - 4.6) / 1.0)) + "%";
+    $("sC").style.width = (10 * ease((t - 5.4) / 1.0)) + "%";
+  }
+
+  /* ================= FIT + LOOP ================= */
   function fit() {
     var s = Math.min(window.innerWidth / 1080, window.innerHeight / 1350);
     $("page").style.transform = "scale(" + s + ")";
+    sizeCanvas(s);
   }
   window.addEventListener("resize", fit);
   fit();
 
-  /* ---------- loop ---------- */
-  go(0);
-  setInterval(function () { go((idx + 1) % STATES.length); }, STEP_MS);
+  var t0 = performance.now(), lastAppend = 0;
+  function frame(now) {
+    var el = Math.max(0, now - t0) / 1000;
+    var t = el % LOOP;
+    draw(t);
+    ticks(t);
+    bars(t);
+    var ti = Math.floor(t / 2);                       // tape every 2s, 15 lines per loop
+    setTape(ti, (t % 2) / 2);
+    var n = Math.floor(el / 3.75);                    // verdict every 3.75s, 8 per loop
+    while (lastAppend < n) { lastAppend++; appendVerdict(); }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 })();
 </script>
 </body>
