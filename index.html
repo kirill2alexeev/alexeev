@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Solo Store File</title>
+<style>
+  :root {
+    --bg: #07070a;
+    --panel: #0d0d12;
+    --line: #1c1c24;
+    --yellow: #f5d76e;
+    --white: #ececec;
+    --mute: #6f6f78;
+    --pink: #ff4fd8;
+    --green: #7dffb3;
+    --orange: #ff8a4c;
+    --red: #ff4d5e;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--white); font-family: var(--mono); overflow: hidden; }
+  body { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+
+  .page {
+    width: 1080px; height: 1350px; flex: none;
+    background: var(--bg);
+    padding: 34px 36px 28px;
+    display: grid;
+    grid-template-rows: 138px 560px 1fr 22px;
+    row-gap: 16px;
+    position: relative;
+    transform-origin: center center;
+  }
+  .page::before { /* faint scanlines */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 4px);
+  }
+
+  .lbl { color: var(--mute); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; }
+  .y { color: var(--yellow); } .w { color: var(--white); } .m { color: var(--mute); }
+  .p { color: var(--pink); } .g { color: var(--green); } .o { color: var(--orange); } .r { color: var(--red); }
+
+  /* ---------- HEADER ---------- */
+  header { display: flex; justify-content: space-between; align-items: stretch; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+  .h-left { display: flex; flex-direction: column; justify-content: space-between; }
+  h1 { font-size: 50px; line-height: 1; font-weight: 800; color: var(--yellow); letter-spacing: -.01em; }
+  .sub { font-size: 18px; color: var(--white); letter-spacing: .06em; }
+  .sub b { color: var(--mute); font-weight: 400; }
+  .h-right { display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; text-align: right; }
+  .clock { font-size: 44px; font-weight: 800; color: var(--orange); line-height: 1; font-variant-numeric: tabular-nums; }
+  .swap { font-size: 17px; letter-spacing: .04em; }
+  .swap s { color: var(--mute); text-decoration-thickness: 2px; text-decoration-color: var(--red); }
+  .run { font-size: 17px; letter-spacing: .04em; }
+
+  /* ---------- TOP ---------- */
+  .top { display: grid; grid-template-columns: 560px 1fr; column-gap: 28px; }
+  .radar { position: relative; width: 560px; height: 560px; }
+  .radar svg { position: absolute; inset: 0; }
+  .sweep {
+    position: absolute; left: 60px; top: 60px; width: 440px; height: 440px; border-radius: 50%;
+    background: conic-gradient(from 0deg, rgba(125,255,179,.26), rgba(125,255,179,0) 70deg, transparent 360deg);
+    animation: spin 4s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .node circle.dot { fill: var(--bg); stroke: var(--mute); stroke-width: 2; transition: all .4s; }
+  .node circle.halo { fill: none; stroke: var(--green); stroke-width: 1.5; opacity: 0; }
+  .node text { fill: var(--mute); font-family: var(--mono); font-size: 14px; letter-spacing: .12em; text-anchor: middle; transition: fill .4s; }
+  .node.on circle.dot { fill: var(--green); stroke: var(--green); }
+  .node.on text { fill: var(--white); }
+  .node.hot circle.halo { animation: ping 1s ease-out infinite; }
+  .node.hot circle.dot { fill: var(--pink); stroke: var(--pink); }
+  .node.hot text { fill: var(--pink); }
+  @keyframes ping { 0% { r: 12; opacity: .9; } 100% { r: 30; opacity: 0; } }
+  .spoke { stroke: var(--mute); stroke-width: 1; stroke-dasharray: 3 5; opacity: .35; transition: all .4s; }
+  .spoke.on { stroke: var(--green); opacity: .8; stroke-dasharray: none; }
+
+  .core {
+    position: absolute; left: 50%; top: 50%; width: 262px; transform: translate(-50%, -50%);
+    background: var(--bg); border: 1px solid var(--line); padding: 12px 12px 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+  }
+  .bot { display: grid; grid-template-columns: repeat(12, 6px); grid-auto-rows: 6px; }
+  .bot i { display: block; width: 6px; height: 6px; }
+  .bot .k { background: var(--white); } .bot .a { background: var(--yellow); }
+  .bot .e { background: var(--green); } .bot .mo { background: var(--pink); }
+  .bot.blink .e { background: var(--bg); }
+  .stack { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+  .row {
+    display: flex; justify-content: space-between; font-size: 13px; padding: 4px 6px;
+    border: 1px solid var(--line); color: var(--mute); transition: all .35s;
+  }
+  .row .st { letter-spacing: .08em; }
+  .row.lock { color: var(--white); border-color: rgba(125,255,179,.35); background: rgba(125,255,179,.06); }
+  .row.lock .st { color: var(--green); }
+  .row.new { animation: flash .7s ease-out; }
+  @keyframes flash { 0% { background: rgba(255,79,216,.45); border-color: var(--pink); } 100% {} }
+
+  /* right panel */
+  .now { border: 1px solid var(--line); background: var(--panel); padding: 20px 22px; display: flex; flex-direction: column; }
+  .now-h { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .now-h .t { font-size: 15px; color: var(--yellow); letter-spacing: .14em; }
+  .live { font-size: 12px; color: var(--green); letter-spacing: .14em; }
+  .live::before { content: "● "; animation: blip 1s steps(2) infinite; }
+  @keyframes blip { 50% { opacity: .2; } }
+  .stat { flex: 1; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--line); }
+  .stat .v { font-size: 46px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; transition: color .3s; }
+  .stat .v.zero { color: var(--mute) !important; }
+  .stat .d { font-size: 12px; color: var(--mute); letter-spacing: .1em; text-align: right; margin-top: 4px; }
+
+  /* ---------- CARDS ---------- */
+  .cards { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 16px; }
+  .card { border: 1px solid var(--line); background: var(--panel); padding: 16px 18px; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .card-h { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .card-h .t { font-size: 13px; color: var(--yellow); letter-spacing: .14em; }
+
+  /* inventory */
+  .inv { position: relative; flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 18px 0 20px; }
+  .ir { display: grid; grid-template-columns: 82px 1fr 58px; align-items: center; column-gap: 8px; font-size: 12px; }
+  .ir .n { color: var(--mute); letter-spacing: .08em; }
+  .ir .c { text-align: right; color: var(--white); font-variant-numeric: tabular-nums; }
+  .track { position: relative; height: 12px; background: #15151c; }
+  .win { position: absolute; top: 0; bottom: 0; border: 1px dashed #2c2c36; }
+  .fill { position: absolute; top: 0; bottom: 0; left: 0; width: 0; background: var(--green); }
+  .axis { position: absolute; left: 90px; right: 66px; bottom: 0; display: flex; justify-content: space-between; font-size: 11px; color: var(--mute); }
+  .head { position: absolute; top: 0; bottom: 16px; width: 2px; background: var(--pink); box-shadow: 0 0 10px var(--pink); left: 90px; z-index: 2; }
+  .head::after { content: attr(data-t); position: absolute; top: -1px; left: 6px; font-size: 11px; color: var(--pink); white-space: nowrap; }
+  .head.flip::after { left: auto; right: 6px; }
+  .lane { position: absolute; left: 90px; right: 66px; top: 0; bottom: 0; pointer-events: none; }
+
+  /* handover */
+  .note { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; transition: opacity .25s, transform .25s; }
+  .note.out { opacity: 0; transform: translateY(8px); }
+  .route { font-size: 22px; font-weight: 800; letter-spacing: .04em; }
+  .route .ar { color: var(--mute); font-weight: 400; }
+  .msg { font-size: 20px; color: var(--white); }
+  .ok { font-size: 13px; color: var(--green); letter-spacing: .12em; }
+  .pips { display: flex; gap: 6px; }
+  .pips i { width: 26px; height: 4px; background: #23232c; }
+  .pips i.on { background: var(--pink); }
+
+  /* stairs */
+  .stairs { flex: 1; display: grid; grid-template-columns: 1fr 170px; column-gap: 10px; }
+  .stairs svg { width: 100%; height: 100%; }
+  .big { display: flex; flex-direction: column; justify-content: center; align-items: flex-end; text-align: right; gap: 6px; }
+  .big .v { font-size: 38px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+  /* session vs selling */
+  .tl { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+  .bar { position: relative; height: 44px; background: #15151c; display: flex; }
+  .sess { width: 8px; background: var(--green); box-shadow: 0 0 14px var(--green); animation: blip 1s steps(2) infinite; }
+  .sell { flex: 1; position: relative; border: 1px solid rgba(255,77,94,.35); border-left: none; }
+  .sell .f { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--red); transition: width 1.2s cubic-bezier(.2,.8,.2,1); }
+  .weeks { position: absolute; inset: 0; display: flex; }
+  .weeks span { flex: 1; border-right: 1px solid rgba(7,7,10,.8); font-size: 11px; color: var(--bg); padding: 4px 6px; z-index: 1; }
+  .legend { display: flex; justify-content: space-between; font-size: 14px; letter-spacing: .06em; }
+  .ratio { font-size: 13px; color: var(--mute); letter-spacing: .08em; }
+
+  /* footer */
+  footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--mute); letter-spacing: .14em; }
+  .prog { width: 220px; height: 3px; background: #1a1a22; position: relative; }
+  .prog i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--yellow); }
+  .prog i.run { animation: prog 2s linear forwards; }
+  @keyframes prog { to { width: 100%; } }
+</style>
+</head>
+<body>
+<div class="page" id="page">
+
+  <header>
+    <div class="h-left">
+      <div class="lbl">OPS FILE // LOOP</div>
+      <h1>THE SOLO STORE FILE</h1>
+      <div class="sub">5 PROMPTS <b>·</b> JEV + HIGGSFIELD + SHOPIFY</div>
+    </div>
+    <div class="h-right">
+      <div class="clock" id="clock">T+00</div>
+      <div class="swap"><s>$4,800 TEAM</s> <span class="m">→</span> <span class="g">$118 STACK</span></div>
+      <div class="run"><span class="m">SHOWN RUN</span> <span class="p">$27,300 / MO</span></div>
+    </div>
+  </header>
+
+  <section class="top">
+    <div class="radar">
+      <div class="sweep"></div>
+      <svg viewBox="0 0 560 560" id="radarSvg">
+        <g fill="none" stroke="#1f1f28">
+          <circle cx="280" cy="280" r="250"/>
+          <circle cx="280" cy="280" r="220" stroke="#2a2a34"/>
+          <circle cx="280" cy="280" r="150"/>
+          <circle cx="280" cy="280" r="80"/>
+          <line x1="280" y1="20" x2="280" y2="540"/>
+          <line x1="20" y1="280" x2="540" y2="280"/>
+        </g>
+        <g id="ticks" stroke="#2a2a34"></g>
+        <g id="spokes"></g>
+        <g id="nodes"></g>
+      </svg>
+      <div class="core">
+        <div class="bot" id="bot"></div>
+        <div class="stack" id="stack"></div>
+      </div>
+    </div>
+
+    <div class="now">
+      <div class="now-h"><span class="t">WHAT EXISTS NOW</span><span class="live">LIVE</span></div>
+      <div class="stat"><div class="lbl">products</div><div><div class="v y" id="s0">0</div><div class="d">SCORED SKUS</div></div></div>
+      <div class="stat"><div class="lbl">creatives</div><div><div class="v w" id="s1">0</div><div class="d">IMG + VIDEO</div></div></div>
+      <div class="stat"><div class="lbl">ads live</div><div><div class="v g" id="s2">0</div><div class="d">SCORED ≥ 7</div></div></div>
+      <div class="stat"><div class="lbl">orders</div><div><div class="v p" id="s3">0</div><div class="d">PER MONTH</div></div></div>
+      <div class="stat"><div class="lbl">cost</div><div><div class="v o" id="s4">$0</div><div class="d">STACK / MO</div></div></div>
+    </div>
+  </section>
+
+  <section class="cards">
+    <div class="card">
+      <div class="card-h"><span class="t">INVENTORY</span><span class="lbl">0–30 MIN</span></div>
+      <div class="inv" id="inv">
+        <div class="lane" id="lane"></div>
+        <div class="head" id="head" data-t="T+00"></div>
+        <div class="axis"><span>0</span><span>10</span><span>20</span><span>30</span></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><span class="t">HANDOVER</span><span class="lbl" id="noteN">1 / 4</span></div>
+      <div class="note" id="note">
+        <div class="route" id="route"></div>
+        <div class="msg" id="msg"></div>
+        <div class="ok" id="ok"></div>
+      </div>
+      <div class="pips" id="pips"><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><span class="t">REVENUE / MO</span><span class="lbl" id="sellState">SELLING: OFF</span></div>
+      <div class="stairs">
+        <svg viewBox="0 0 280 170" preserveAspectRatio="none">
+          <g stroke="#1c1c24"><line x1="0" y1="160" x2="280" y2="160"/><line x1="0" y1="110" x2="280" y2="110"/><line x1="0" y1="60" x2="280" y2="60"/><line x1="0" y1="10" x2="280" y2="10"/></g>
+          <path id="ghost" fill="none" stroke="#3a3a44" stroke-width="2" stroke-dasharray="4 5"/>
+          <path id="area" fill="rgba(245,215,110,.10)" opacity="0" style="transition:opacity .8s"/>
+          <path id="stair" fill="none" stroke="#f5d76e" stroke-width="3"/>
+          <g id="wk" font-size="11" fill="#6f6f78" font-family="ui-monospace, Menlo, monospace"></g>
+        </svg>
+        <div class="big">
+          <div class="lbl">MONTH</div>
+          <div class="v m" id="rev">$0</div>
+          <div class="lbl" id="revSub">WAITING ON ADS</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-h"><span class="t">WORK vs SELLING</span><span class="lbl">1 MONTH</span></div>
+      <div class="tl">
+        <div class="legend"><span class="g">■ SESSION 30 MIN</span><span class="r">■ SELLING 4 WK</span></div>
+        <div class="bar">
+          <div class="sess"></div>
+          <div class="sell"><div class="f" id="sellF"></div>
+            <div class="weeks"><span>W1</span><span>W2</span><span>W3</span><span>W4</span></div>
+          </div>
+        </div>
+        <div class="ratio" id="ratio">WORK 0.07% · SELLING 99.93%</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span id="foot">STATE 1 / 4 · LOOP 2S</span>
+    <div class="prog"><i id="prog"></i></div>
+    <span>NOT A LANDING PAGE</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var NS = "http://www.w3.org/2000/svg";
+  var $ = function (id) { return document.getElementById(id); };
+
+  /* ---------- data ---------- */
+  var NODES = ["RESEARCHER", "COPY", "CREATIVE", "ADS", "AUDIT"];
+  var STACK = ["PRODUCT.SCORE", "COPY.PROMPT", "CREATIVE.GENERATE", "AD.SCORE", "AUDIT.SCORE"];
+  var INV = [
+    { n: "PRODUCT",  a: 0,  b: 4,  unit: "SKU" },
+    { n: "COPY",     a: 4,  b: 12, unit: "HOOK" },
+    { n: "CREATIVE", a: 12, b: 22, unit: "ASSET" },
+    { n: "ADS",      a: 22, b: 27, unit: "LIVE" },
+    { n: "AUDIT",    a: 27, b: 30, unit: "PASS" }
+  ];
+  var STATES = [
+    { t: 0,  locked: 1, nodes: 1, stats: [3, 0, 0, 0, 4],       inv: [3, 0, 0, 0, 0],
+      note: ["RESEARCHER", "COPY", "3 SKUs · score ≥ 8", "PRODUCT.SCORE LOCKED"] },
+    { t: 8,  locked: 2, nodes: 2, stats: [3, 0, 0, 0, 29],      inv: [3, 12, 0, 0, 0],
+      note: ["COPY", "CREATIVE", "12 hooks · 3 angles", "COPY.PROMPT LOCKED"] },
+    { t: 18, locked: 3, nodes: 3, stats: [3, 24, 0, 0, 76],     inv: [3, 12, 24, 0, 0],
+      note: ["CREATIVE", "ADS", "24 assets · 9:16", "CREATIVE.GENERATE LOCKED"] },
+    { t: 30, locked: 5, nodes: 5, stats: [3, 24, 6, 546, 118],  inv: [3, 12, 24, 6, 1],
+      note: ["ADS", "AUDIT", "6 live · kill 2 · scale 4", "ALL 5 LOCKED"] }
+  ];
+  var WEEKS = [3900, 9800, 17600, 27300];
+
+  /* ---------- radar ---------- */
+  var C = 280, R = 220, nodeEls = [], spokeEls = [];
+  var ticks = $("ticks");
+  for (var d = 0; d < 360; d += 10) {
+    var a = d * Math.PI / 180, r1 = d % 30 ? 244 : 238;
+    var l = document.createElementNS(NS, "line");
+    l.setAttribute("x1", C + Math.cos(a) * r1); l.setAttribute("y1", C + Math.sin(a) * r1);
+    l.setAttribute("x2", C + Math.cos(a) * 250); l.setAttribute("y2", C + Math.sin(a) * 250);
+    ticks.appendChild(l);
+  }
+  NODES.forEach(function (name, i) {
+    var ang = (-90 + i * 72) * Math.PI / 180;
+    var x = C + Math.cos(ang) * R, y = C + Math.sin(ang) * R;
+    var sp = document.createElementNS(NS, "line");
+    sp.setAttribute("x1", C); sp.setAttribute("y1", C); sp.setAttribute("x2", x); sp.setAttribute("y2", y);
+    sp.setAttribute("class", "spoke");
+    $("spokes").appendChild(sp); spokeEls.push(sp);
+
+    var g = document.createElementNS(NS, "g");
+    g.setAttribute("class", "node");
+    var halo = document.createElementNS(NS, "circle");
+    halo.setAttribute("class", "halo"); halo.setAttribute("cx", x); halo.setAttribute("cy", y); halo.setAttribute("r", 12);
+    var dot = document.createElementNS(NS, "circle");
+    dot.setAttribute("class", "dot"); dot.setAttribute("cx", x); dot.setAttribute("cy", y); dot.setAttribute("r", 9);
+    var tx = document.createElementNS(NS, "text");
+    tx.setAttribute("x", x);
+    tx.setAttribute("y", i === 0 ? y - 20 : y + 30);
+    tx.textContent = name;
+    g.appendChild(halo); g.appendChild(dot); g.appendChild(tx);
+    $("nodes").appendChild(g); nodeEls.push(g);
+  });
+
+  /* ---------- pixel robot ---------- */
+  var BOT = [
+    ".....aa.....",
+    "......k.....",
+    "..kkkkkkkk..",
+    ".k........k.",
+    ".k.ee..ee.k.",
+    ".k.ee..ee.k.",
+    ".k........k.",
+    ".k..mmmm..k.",
+    "..kkkkkkkk..",
+    "...k....k...",
+    ".kkkkkkkkkk.",
+    ".k.k....k.k."
+  ];
+  var botEl = $("bot");
+  BOT.join("").split("").forEach(function (ch) {
+    var i = document.createElement("i");
+    if (ch === "k") i.className = "k";
+    else if (ch === "a") i.className = "a";
+    else if (ch === "e") i.className = "e";
+    else if (ch === "m") i.className = "mo";
+    botEl.appendChild(i);
+  });
+  setInterval(function () {
+    botEl.classList.add("blink");
+    setTimeout(function () { botEl.classList.remove("blink"); }, 140);
+  }, 2600);
+
+  /* ---------- center stack ---------- */
+  var rowEls = STACK.map(function (s, i) {
+    var r = document.createElement("div");
+    r.className = "row";
+    r.innerHTML = "<span>" + String(i + 1).padStart(2, "0") + " " + s + "</span><span class='st'>WAIT</span>";
+    $("stack").appendChild(r);
+    return r;
+  });
+
+  /* ---------- inventory ---------- */
+  var invRows = INV.map(function (row) {
+    var el = document.createElement("div");
+    el.className = "ir";
+    el.innerHTML =
+      "<span class='n'>" + row.n + "</span>" +
+      "<div class='track'><div class='win' style='left:" + (row.a / 30 * 100) + "%;width:" + ((row.b - row.a) / 30 * 100) + "%'></div>" +
+      "<div class='fill'></div></div><span class='c'>0</span>";
+    $("inv").insertBefore(el, $("inv").querySelector(".axis"));
+    return { el: el, fill: el.querySelector(".fill"), c: el.querySelector(".c"), row: row };
+  });
+  var laneRect = function () { return $("lane"); };
+
+  /* ---------- stairs ---------- */
+  (function () {
+    var W = 280, H = 160, top = 10, max = 30000;
+    var yOf = function (v) { return H - (v / max) * (H - top); };
+    var dPath = "M0 " + H, x = 0, step = W / 4;
+    WEEKS.forEach(function (v) { dPath += " L" + x + " " + yOf(v) + " L" + (x + step) + " " + yOf(v); x += step; });
+    $("ghost").setAttribute("d", dPath);
+    $("stair").setAttribute("d", dPath);
+    $("area").setAttribute("d", dPath + " L" + W + " " + H + " Z");
+    WEEKS.forEach(function (v, i) {
+      var t = document.createElementNS(NS, "text");
+      t.setAttribute("x", i * step + 6); t.setAttribute("y", yOf(v) - 6);
+      t.textContent = "W" + (i + 1);
+      $("wk").appendChild(t);
+    });
+  })();
+  var stair = $("stair");
+  var stairLen = stair.getTotalLength();
+  stair.style.strokeDasharray = stairLen;
+  stair.style.strokeDashoffset = stairLen;
+
+  /* ---------- helpers ---------- */
+  var cur = STATES[0].stats.map(function () { return 0; });
+  var curMin = 0, curRev = 0;
+  var fmt = function (n) { return Math.round(n).toLocaleString("en-US"); };
+  var ease = function (t) { return 1 - Math.pow(1 - t, 3); };
+
+  function tween(dur, fn, done) {
+    var t0 = performance.now();
+    (function tick(now) {
+      var p = Math.min(1, (now - t0) / dur);
+      fn(ease(p));
+      if (p < 1) requestAnimationFrame(tick); else if (done) done();
+    })(t0);
+  }
+
+  function setPlayhead(min) {
+    var lane = $("lane");
+    var px = 90 + lane.clientWidth * (min / 30);
+    $("head").style.left = px + "px";
+    $("head").classList.toggle("flip", min > 15);
+    $("head").setAttribute("data-t", "T+" + String(Math.round(min)).padStart(2, "0"));
+  }
+
+  /* ---------- render a state ---------- */
+  var idx = -1;
+  function go(i) {
+    var S = STATES[i], prevLocked = idx < 0 ? 0 : STATES[idx].locked;
+    var wrap = i === 0;
+    idx = i;
+
+    $("clock").textContent = "T+" + String(S.t).padStart(2, "0");
+    $("foot").textContent = "STATE " + (i + 1) + " / 4 · LOOP 2S";
+
+    // nodes + spokes
+    nodeEls.forEach(function (n, k) {
+      n.classList.toggle("on", k < S.nodes);
+      n.classList.toggle("hot", k === S.nodes - 1 || (i === 3 && k >= 3));
+      spokeEls[k].classList.toggle("on", k < S.nodes);
+    });
+
+    // stack
+    rowEls.forEach(function (r, k) {
+      var lock = k < S.locked;
+      r.classList.toggle("lock", lock);
+      r.querySelector(".st").textContent = lock ? "LOCKED" : "WAIT";
+      r.classList.remove("new");
+      if (lock && (wrap ? k === 0 : k >= prevLocked)) { void r.offsetWidth; r.classList.add("new"); }
+    });
+
+    // counters
+    var from = wrap ? S.stats.map(function () { return 0; }) : cur.slice();
+    var to = S.stats;
+    var fromMin = wrap ? 0 : curMin;
+    tween(1100, function (p) {
+      to.forEach(function (v, k) {
+        var n = from[k] + (v - from[k]) * p;
+        var el = $("s" + k);
+        el.textContent = (k === 4 ? "$" : "") + fmt(n);
+        el.classList.toggle("zero", Math.round(n) === 0);
+      });
+      var m = fromMin + (S.t - fromMin) * p;
+      setPlayhead(m);
+      invRows.forEach(function (ir, k) {
+        var f = ir.row;
+        var frac = k < S.locked ? 1 : Math.max(0, Math.min(1, (m - f.a) / (f.b - f.a)));
+        ir.fill.style.left = (f.a / 30 * 100) + "%";
+        ir.fill.style.width = ((f.b - f.a) / 30 * 100 * frac) + "%";
+        ir.fill.style.background = k < S.locked ? "var(--green)" : "var(--orange)";
+        ir.c.textContent = Math.round(S.inv[k] * (k < S.locked ? 1 : 0)) + " " + f.unit;
+        ir.c.style.color = k < S.locked ? "var(--white)" : "var(--mute)";
+      });
+    });
+    cur = to.slice(); curMin = S.t;
+
+    // handover note
+    var note = $("note");
+    note.classList.add("out");
+    setTimeout(function () {
+      $("route").innerHTML = "<span class='y'>" + S.note[0] + "</span> <span class='ar'>→</span> <span class='p'>" + S.note[1] + "</span>";
+      $("msg").textContent = S.note[2];
+      $("ok").textContent = "✓ " + S.note[3];
+      $("noteN").textContent = (i + 1) + " / 4";
+      note.classList.remove("out");
+    }, 250);
+    Array.prototype.forEach.call($("pips").children, function (p, k) { p.classList.toggle("on", k === i); });
+
+    // revenue stairs + selling bar
+    var selling = i === 3;
+    $("sellState").textContent = selling ? "SELLING: ON" : "SELLING: OFF";
+    $("sellState").style.color = selling ? "var(--green)" : "";
+    $("area").style.opacity = selling ? 1 : 0;
+    $("sellF").style.width = selling ? "100%" : "0%";
+    $("revSub").textContent = selling ? "SHOWN RUN" : "WAITING ON ADS";
+    $("rev").className = "v " + (selling ? "y" : "m");
+    stair.style.transition = selling ? "stroke-dashoffset 1.3s cubic-bezier(.3,.7,.2,1)" : "none";
+    stair.style.strokeDashoffset = selling ? 0 : stairLen;
+    var r0 = wrap ? 0 : curRev, r1 = selling ? 27300 : 0;
+    tween(1300, function (p) { $("rev").textContent = "$" + fmt(r0 + (r1 - r0) * p); });
+    curRev = r1;
+
+    // 2s progress bar
+    var pr = $("prog");
+    pr.classList.remove("run"); void pr.offsetWidth; pr.classList.add("run");
+  }
+
+  /* ---------- fit to window (1080x1350 native) ---------- */
+  function fit() {
+    var s = Math.min(window.innerWidth / 1080, window.innerHeight / 1350, 1);
+    $("page").style.transform = s < 1 ? "scale(" + s + ")" : "none";
+  }
+  window.addEventListener("resize", fit);
+  fit();
+
+  /* ---------- loop ---------- */
+  go(0);
+  setInterval(function () { go((idx + 1) % STATES.length); }, 2000);
+})();
+</script>
+</body>
+</html>
