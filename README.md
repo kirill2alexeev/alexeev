@@ -1,8 +1,8 @@
-# The Solo Store File
+# The Split-Brain File
 
-A looping operations file for an X video. It's a single `index.html` with no frameworks, images or CDN.
+A 30-second looping HUD dashboard for video. It's a single `index.html` with no frameworks, images or CDN.
 
-- Canvas: 1080 × 1350. It scales down to fit smaller windows.
-- Open `index.html` in a browser and it loops by itself.
-- Each state holds 7 seconds: T+00 → T+08 → T+18 → T+30. One full cycle is 28 s, then it repeats.
-- To record, set the browser window to 1080 × 1350 and screen-capture 28 s for one full loop.
+- Canvas: 1080 × 1350. It scales to fit any window, including Chrome fullscreen.
+- Open `index.html` and it loops by itself.
+- 4 states × 7.5 s = 30 s cycle: T+00 audit → T+08 Jev running → T+18 threshold on → T+30 split-brain locked.
+- To record, open it in Chrome, go fullscreen (F11 / ⌃⌘F) and capture 30 s.
