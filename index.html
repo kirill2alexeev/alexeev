@@ -161,7 +161,7 @@
   footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--mute); letter-spacing: .14em; }
   .prog { width: 220px; height: 3px; background: #1a1a22; position: relative; }
   .prog i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--yellow); }
-  .prog i.run { animation: prog 2s linear forwards; }
+  .prog i.run { animation: prog 7s linear forwards; }
   @keyframes prog { to { width: 100%; } }
 </style>
 </head>
@@ -267,7 +267,7 @@
   </section>
 
   <footer>
-    <span id="foot">STATE 1 / 4 · LOOP 2S</span>
+    <span id="foot">STATE 1 / 4 · 7S</span>
     <div class="prog"><i id="prog"></i></div>
     <span>NOT A LANDING PAGE</span>
   </footer>
@@ -436,7 +436,7 @@
     idx = i;
 
     $("clock").textContent = "T+" + String(S.t).padStart(2, "0");
-    $("foot").textContent = "STATE " + (i + 1) + " / 4 · LOOP 2S";
+    $("foot").textContent = "STATE " + (i + 1) + " / 4 · 7S";
 
     // nodes + spokes
     nodeEls.forEach(function (n, k) {
@@ -518,9 +518,10 @@
   window.addEventListener("resize", fit);
   fit();
 
-  /* ---------- loop ---------- */
+  /* ---------- loop: 4 states x 7s = 28s cycle ---------- */
+  var STEP_MS = 7000;
   go(0);
-  setInterval(function () { go((idx + 1) % STATES.length); }, 2000);
+  setInterval(function () { go((idx + 1) % STATES.length); }, STEP_MS);
 })();
 </script>
 </body>
