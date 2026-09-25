@@ -39,7 +39,7 @@
   .brand { display: flex; align-items: baseline; gap: 22px; font-family: var(--sans); }
   .brand .jev { font-size: 60px; font-weight: 800; color: var(--pink); letter-spacing: -.02em; line-height: 1; text-shadow: 0 0 24px rgba(255,61,143,.35); }
   .brand .nl { font-size: 48px; font-weight: 600; color: var(--white); letter-spacing: -.01em; line-height: 1; }
-  .cap { margin-top: 16px; }
+  .subt { margin-top: 14px; font-size: 15px; letter-spacing: .22em; text-transform: uppercase; color: #b9b9c2; }
   .counters { display: flex; gap: 44px; padding-top: 4px; }
   .ctr { text-align: center; min-width: 78px; }
   .ctr .v { margin-top: 8px; font-size: 20px; color: var(--white); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
@@ -106,7 +106,7 @@
   @keyframes enter { from { height: 0; opacity: 0; background: rgba(255,61,143,.25); } to { height: 29.75px; opacity: 1; background: transparent; } }
   .log::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 90px; background: linear-gradient(transparent, var(--panel)); pointer-events: none; }
 
-  .cost { display: grid; grid-template-columns: 128px 1fr 78px; align-items: center; column-gap: 12px; height: 38px; }
+  .cost { display: grid; grid-template-columns: 138px 1fr 118px; align-items: center; column-gap: 12px; height: 38px; }
   .cost .n { font-size: 13px; color: var(--white); line-height: 15px; }
   .cost .n i { display: block; font-style: normal; font-size: 10px; color: var(--dim); }
   .cost .tr { position: relative; height: 7px; background: #15151e; border-radius: 1px; }
@@ -114,8 +114,11 @@
   .cost .f::after { content: ""; position: absolute; right: -2px; top: -2px; bottom: -2px; width: 5px; background: #fff; box-shadow: 0 0 10px var(--c), 0 0 4px #fff; border-radius: 1px; }
   .cost .p { text-align: right; font-size: 15px; color: var(--c); font-variant-numeric: tabular-nums; }
   .lands { margin-top: 12px; }
-  .split { margin-top: 7px; height: 16px; display: flex; gap: 2px; background: #15151e; }
-  .split div { width: 0; height: 100%; font-size: 9px; line-height: 16px; padding-left: 6px; color: #05050a; white-space: nowrap; overflow: hidden; letter-spacing: .06em; font-weight: 700; }
+  .states { margin-top: 7px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; }
+  .st { position: relative; height: 18px; background: #15151e; overflow: hidden; }
+  .st .sf { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--pink); box-shadow: 0 0 10px rgba(255,61,143,.5); }
+  .st.done .sf { width: 100%; background: rgba(255,61,143,.35); box-shadow: none; }
+  .st span { position: relative; font-size: 9px; line-height: 18px; padding-left: 7px; letter-spacing: .1em; color: var(--white); font-weight: 700; }
 
   footer { position: absolute; top: 1326px; left: 40px; right: 40px; display: flex; justify-content: space-between; }
   footer span { font-size: 10px; letter-spacing: .16em; color: var(--dim); }
@@ -127,12 +130,12 @@
   <header>
     <div>
       <div class="brand"><span class="jev">JEV</span><span class="nl">neural loop</span></div>
-      <div class="tiny cap">TEN REPOS · ONE BRAIN · ZERO PROSE · NUMBER AGAINST A LIST</div>
+      <div class="subt">The Split-Brain File</div>
     </div>
     <div class="counters">
       <div class="ctr"><div class="tiny">REPOS</div><div class="v" id="cRepos">10</div></div>
       <div class="ctr"><div class="tiny">SIGNALS/S</div><div class="v p" id="cSig">13.2</div></div>
-      <div class="ctr"><div class="tiny">JUDGED</div><div class="v" id="cJud">48,310</div></div>
+      <div class="ctr"><div class="tiny">JUDGED</div><div class="v" id="cJud">4,700</div></div>
       <div class="ctr"><div class="tiny">ROWS/S</div><div class="v" id="cRows">819</div></div>
     </div>
   </header>
@@ -142,7 +145,7 @@
 
   <div class="hud">
     <span id="cam">CAM 1247 · YAW 21.8° · PITCH 17.2°</span>
-    <span>FIELD R 560 · 4 RINGS · 12 SIGNALS / LOOP</span>
+    <span id="stateHud">FIELD R 560 · 4 RINGS · STATE 1 / 4 · AUDIT</span>
   </div>
 
   <div class="tape">
@@ -155,26 +158,22 @@
 
   <div class="panels">
     <div class="panel">
-      <div class="ph"><span class="h">LIVE VERDICTS</span><span class="s">from the ten repos</span></div>
+      <div class="ph"><span class="h">LIVE VERDICTS</span><span class="s">split-brain · live</span></div>
       <div class="log" id="log"></div>
     </div>
     <div class="panel">
       <div class="ph"><span class="h">WHAT IT COSTS · FROM THE ARTICLE</span></div>
       <div id="costs"></div>
       <div class="lands">
-        <div class="tiny">WHERE THE WORK LANDS</div>
-        <div class="split">
-          <div id="sJ" style="background:var(--pink)">JEV · decide 75%</div>
-          <div id="sL" style="background:var(--purple)">LLM · write</div>
-          <div id="sC" style="background:var(--blue)">CODE</div>
-        </div>
+        <div class="tiny">LOOP · 4 STATES</div>
+        <div class="states" id="states"></div>
       </div>
     </div>
   </div>
 
   <footer>
-    <span>NONE OF THE TEN GENERATE A WORD</span>
-    <span>JEV · ILLUSTRATIVE · 30S LOOP</span>
+    <span>JEV DECIDES · CLAUDE WRITES · CODE DOES</span>
+    <span>NONE OF THE DECISIONS GENERATE A WORD</span>
   </footer>
 </div>
 
@@ -193,58 +192,48 @@
 
   /* ================= DATA ================= */
   var PODS = [
-    { ring: 0, a: 3.30, name: "pg-jev",     sub: "ask the table" },
-    { ring: 0, a: 4.10, name: "trader",     sub: "monad 300ms" },
-    { ring: 1, a: 1.20, name: "ultrafast",  sub: "picks the click" },
-    { ring: 1, a: 4.30, name: "doom",       sub: "WASD frame" },
-    { ring: 2, a: 5.40, name: "t-rex",      sub: "jump / duck / run", hi: true },
-    { ring: 0, a: 5.95, name: "chess",      sub: "vs search" },
-    { ring: 0, a: 0.30, name: "drone",      sub: "camera" },
-    { ring: 0, a: 1.20, name: "tax",        sub: "261 forms" },
-    { ring: 0, a: 2.35, name: "killmyidea", sub: "kill / fix / ship" }
+    { ring: 0, a: 0.20, name: "AUDIT",          sub: "31 yes/no · 4 writes", st: 0 },
+    { ring: 0, a: 1.45, name: "ROUTER",         sub: "bounded or write",     st: 0 },
+    { ring: 1, a: 1.20, name: "CLASSIFY",       sub: "enum + confidence",    st: 1 },
+    { ring: 1, a: 4.30, name: "JEV",            sub: "decides · 217ms",      st: 1 },
+    { ring: 2, a: 5.40, name: "THRESHOLD 0.87", sub: "keep or hand off",     st: 2 },
+    { ring: 0, a: 2.70, name: "FALLBACK",       sub: "below 0.87 → claude",  st: 2 },
+    { ring: 0, a: 3.95, name: "GENERATE",       sub: "claude only if needed", st: 3 },
+    { ring: 0, a: 5.15, name: "CLAUDE",         sub: "writes only the 4",    st: 3 }
   ];
+  var STATES = ["AUDIT", "JEV", "GATE", "CLAUDE"];
+  var STATE_S = LOOP / STATES.length;          // 7.5s each
   var TAPE = [
-    "t-rex · jump / duck · decided in 4 ms",
-    "doom · strafe left · WASD frame in 6 ms",
-    "ultrafast · keeps the click · 3 ms",
-    "pg-jev · answers the table · 11 ms",
-    "tax · page accepted · $0.001",
-    "chess · instinct overruled · 9 ms",
-    "killmyidea · verdict: fix · 14 ms",
-    "trader · monad hold · 300 ms",
-    "drone · bank left · 5 ms",
-    "curate · 500 emails batched",
-    "t-rex · duck the cactus · 4 ms",
-    "noul · idea scored · ship",
-    "doom · fire · 5 ms",
-    "chess · e4 kept · 8 ms",
-    "t-rex · run · decided in 4 ms"
+    "audit · 31 yes/no · 4 writes",
+    "jev · enum + confidence · 217ms",
+    "gate · 0.87 keep or handoff",
+    "claude · writes only the 4",
+    "code review $1.47 → $0.19"
   ];
   var KIND = { choice: "var(--pink)", noul: "var(--green)", score: "var(--purple)" };
   var VERDICTS = [
-    ["choice", "t-rex jumps this frame", "t-rex"],
-    ["noul", "curate batch · 500 emails", "curate"],
-    ["choice", "t-rex ducks the cactus", "t-rex"],
-    ["score", "tax page accepted · $0.001", "tax"],
-    ["noul", "pg-jev answers the table", "pg-jev"],
-    ["score", "chess instinct overruled", "chess"],
-    ["choice", "ultrafast keeps the click", "ultrafast"],
-    ["noul", "idea scored · ship", "killmyidea"]
+    ["choice", "31 bounded decisions", "audit"],
+    ["noul",   "4 generation tasks",   "router"],
+    ["score",  "code review pass",     "jev"],
+    ["noul",   "email urgent",         "classify"],
+    ["choice", "pr merge",             "jev"],
+    ["score",  "confidence 0.92",      "gate"],
+    ["noul",   "fallback to claude",   "fallback"]
   ];
   var CHIPS = [
     ["INPUT", "$0.042", "per 1M tokens", "var(--green)"],
     ["OUTPUT", "FREE", "decisions, not text", "var(--blue)"],
-    ["10K DECISIONS", "≈ $0.42", "~1k tokens total", "var(--yellow)"],
-    ["P50 LATENCY", "217 ms", "choice · score · noul", "var(--purple)"],
-    ["GATE", "≥ 0.85", "else → human", "var(--pink)"],
-    ["PROSE", "0", "words generated", "var(--pink)", true]
+    ["4,700 CALLS", "$1.83", "whole set · jev", "var(--yellow)"],
+    ["P50 LATENCY", "217ms", "choice · score · noul", "var(--purple)"],
+    ["GATE", "≥ 0.87", "else → claude", "var(--pink)"],
+    ["PROSE", "0", "words", "var(--pink)", true]
   ];
   var COSTS = [
-    ["flight search", "~7 s",     "$0.0039", 0.20, "var(--blue)"],
-    ["1k papers",     "256 ms",   "$0.08",   0.42, "var(--green)"],
-    ["500 emails",    "batch",    "3.5¢",    0.32, "var(--yellow)"],
-    ["compaction",    "1M tokens","~1 s",    0.50, "var(--pink)"],
-    ["10k decisions", "~1k tok",  "$0.42",   0.20, "var(--purple)"]
+    ["4,700 req",        "jev",           "$1.83",          0.06, "var(--green)"],
+    ["same on Sonnet",   "same set",      "~$47",           0.95, "var(--pink)"],
+    ["code review",      "was $1.47",     "$1.47 → $0.19",  0.13, "var(--yellow)"],
+    ["honest savings",   "real bill",     "70–80%",         0.75, "var(--purple)"],
+    ["isolated classify","per call",      "444.6x",         0.90, "var(--blue)"]
   ];
 
   /* ================= LOWER COCKPIT ================= */
@@ -270,15 +259,15 @@
     r.innerHTML = "<span class='dot'></span><span><span class='ty'>" + v[0] + "</span><span class='tx'>" + v[1] + "</span></span><span class='src'>" + v[2] + "</span>";
     return r;
   }
-  VERDICTS.forEach(function (v) { $("log").appendChild(verdictRow(v, false)); });
+  VERDICTS.concat([VERDICTS[0]]).forEach(function (v) { $("log").appendChild(verdictRow(v, false)); });
   var appended = 0;
   function appendVerdict() {
     appended++;
-    // appending 7,6,...,0 returns the list to its starting order every 8 appends (= one 30s loop)
-    var v = VERDICTS[(8 - (appended % 8)) % 8];
+    // appending N-1,...,1,0 returns the list to its starting order every N appends (= one 30s loop)
+    var NV = VERDICTS.length, v = VERDICTS[(NV - (appended % NV)) % NV];
     var log = $("log");
     log.insertBefore(verdictRow(v, true), log.firstChild);
-    while (log.children.length > 9) log.removeChild(log.lastChild);
+    while (log.children.length > VERDICTS.length + 1) log.removeChild(log.lastChild);
   }
 
   var tapeIdx = -1;
@@ -371,7 +360,7 @@
   // --- pods (HTML labels) ---
   var podEls = PODS.map(function (p) {
     var el = document.createElement("div");
-    el.className = "pod" + (p.hi ? " hi" : "");
+    el.className = "pod";
     el.innerHTML = "<b>" + p.name + "</b><i>" + p.sub + "</i>";
     $("pods").appendChild(el);
     return el;
@@ -517,7 +506,7 @@
       var x = p[0], y = p[1], z = p[2], ks = p[3];
       // wire cube marker
       var c = 7 * ks;
-      ctx.strokeStyle = pd.hi ? "rgba(255,61,143,.9)" : "rgba(255,150,200,.6)";
+      ctx.strokeStyle = pd.st === curState ? "rgba(255,61,143,.95)" : "rgba(255,150,200,.6)";
       ctx.lineWidth = 1;
       ctx.strokeRect(x - c, y - c, 2 * c, 2 * c);
       ctx.strokeRect(x - c + 3 * ks, y - c - 3 * ks, 2 * c, 2 * c);
@@ -539,16 +528,28 @@
     var h = Math.floor(t * 2);   // changes twice a second, deterministic per loop
     $("cSig").textContent = (13.2 + 0.3 * Math.sin(h * 1.7) * Math.cos(h * 0.9)).toFixed(1);
     $("cRows").textContent = String(Math.round(819 + 11 * Math.sin(h * 2.3) + 5 * Math.cos(h * 1.1)));
-    $("cJud").textContent = (48310 + Math.floor(t * 13.2)).toLocaleString("en-US");
+    $("cJud").textContent = (4700 - Math.round((LOOP - t) * 13.2)).toLocaleString("en-US");
   }
   var ease = function (x) { x = Math.max(0, Math.min(1, x)); return 1 - Math.pow(1 - x, 3); };
+  $("states").innerHTML = STATES.map(function (n, i) {
+    return "<div class='st' id='st" + i + "'><div class='sf'></div><span>" + (i + 1) + " " + n + "</span></div>";
+  }).join("");
+  var curState = -1;
   function bars(t) {
     for (var i = 0; i < COSTS.length; i++) {
-      $("cf" + i).style.width = (COSTS[i][3] * 100 * ease((t - 0.6 - i * 0.45) / 1.6)) + "%";
+      $("cf" + i).style.width = (COSTS[i][3] * 100 * ease((t - 0.6 - i * 1.4) / 1.8)) + "%";
     }
-    $("sJ").style.width = (75 * ease((t - 3.2) / 1.8)) + "%";
-    $("sL").style.width = (15 * ease((t - 4.6) / 1.0)) + "%";
-    $("sC").style.width = (10 * ease((t - 5.4) / 1.0)) + "%";
+    var k = Math.min(STATES.length - 1, Math.floor(t / STATE_S));
+    for (i = 0; i < STATES.length; i++) {
+      var cell = $("st" + i);
+      cell.classList.toggle("done", i < k);
+      cell.firstChild.style.width = i === k ? ((t - k * STATE_S) / STATE_S * 100) + "%" : "";
+    }
+    if (k !== curState) {
+      curState = k;
+      podEls.forEach(function (el, j) { el.classList.toggle("hi", PODS[j].st === k); });
+      $("stateHud").textContent = "FIELD R 560 · 4 RINGS · STATE " + (k + 1) + " / 4 · " + STATES[k];
+    }
   }
 
   /* ================= FIT + LOOP ================= */
@@ -567,9 +568,11 @@
     draw(t);
     ticks(t);
     bars(t);
-    var ti = Math.floor(t / 2);                       // tape every 2s, 15 lines per loop
-    setTape(ti, (t % 2) / 2);
-    var n = Math.floor(el / 3.75);                    // verdict every 3.75s, 8 per loop
+    // tape retypes every 2s and follows the state: audit / jev / gate / claude ↔ code review
+    var k = Math.min(STATES.length - 1, Math.floor(t / STATE_S));
+    var slot = Math.floor(t / 2), start = Math.max(slot * 2, k * STATE_S);
+    setTape(k < 3 ? k : 3 + (slot % 2), (t - start) / 2);
+    var n = Math.floor(el / (LOOP / VERDICTS.length)); // one verdict per LOOP/N seconds
     while (lastAppend < n) { lastAppend++; appendVerdict(); }
     requestAnimationFrame(frame);
   }
